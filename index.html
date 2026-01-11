@@ -1,0 +1,1178 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>情绪容器 · Emotion Vessel</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root { color-scheme: dark; }
+    .fade-in { animation: fadeIn 420ms ease-out both; }
+    @keyframes fadeIn { from {opacity:0; transform: translateY(6px);} to {opacity:1; transform: translateY(0);} }
+
+    /* --- Stage / Vessel --- */
+    .vessel {
+      position: relative;
+      width: 100%;
+      height: min(560px, 62vh);
+      border-radius: 26px;
+      overflow: hidden;
+      user-select: none;
+      touch-action: none;
+    }
+    .vessel::after{
+      content:"";
+      position:absolute; inset:0;
+      background: radial-gradient(1200px 600px at 60% 20%, rgba(255,255,255,.07), transparent 60%),
+                  radial-gradient(900px 500px at 20% 80%, rgba(255,255,255,.05), transparent 55%);
+      pointer-events:none;
+      mix-blend-mode: screen;
+    }
+
+    /* Tank */
+    .tank{
+      background:
+        radial-gradient(1200px 800px at 50% 10%, rgba(120,180,255,.22), transparent 62%),
+        radial-gradient(900px 700px at 50% 95%, rgba(80,160,180,.16), transparent 70%),
+        linear-gradient(135deg, rgba(255,255,255,.06), rgba(255,255,255,.02)),
+        #04060c;
+      border: 1px solid rgba(255,255,255,.16);
+      box-shadow: 0 0 0 1px rgba(255,255,255,.05) inset, 0 30px 100px rgba(0,0,0,.55);
+    }
+    .tank .rim{
+      position:absolute; inset:14px;
+      border-radius: 20px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: linear-gradient(180deg, rgba(255,255,255,.06), transparent 32%);
+      pointer-events:none;
+    }
+    .tank .glass-line{
+      position:absolute; inset:-10%;
+      background: linear-gradient(110deg, transparent 0%, rgba(255,255,255,.10) 42%, transparent 72%);
+      transform: translateX(-55%);
+      animation: shimmer 7s linear infinite;
+      opacity:.28;
+      pointer-events:none;
+    }
+    @keyframes shimmer { 0%{transform:translateX(-55%);} 100%{transform:translateX(55%);} }
+
+    /* Matchbox */
+    .matchbox{
+      background:
+        radial-gradient(900px 600px at 50% 35%, rgba(255,220,180,.14), transparent 62%),
+        linear-gradient(180deg, rgba(255,255,255,.05), rgba(0,0,0,.35)),
+        #050405;
+      border: 1px solid rgba(255,255,255,.14);
+      box-shadow: 0 0 0 1px rgba(255,255,255,.05) inset, 0 32px 110px rgba(0,0,0,.62);
+    }
+    .matchbox .inner{
+      position:absolute; inset:30px 54px 36px 54px;
+      border-radius: 18px;
+      border: 1px dashed rgba(255,255,255,.16);
+      background: linear-gradient(135deg, rgba(255,255,255,.04), rgba(255,255,255,.01));
+      box-shadow: 0 0 0 1px rgba(255,255,255,.04) inset;
+      pointer-events:none;
+    }
+    .matchbox .label{
+      position:absolute; left:18px; bottom:16px;
+      font-size: 12px; letter-spacing: .18em;
+      color: rgba(255,255,255,.62);
+      text-transform: uppercase;
+      opacity:.9;
+    }
+
+    /* Drawer */
+    .drawer{
+      background:
+        radial-gradient(1000px 700px at 50% 20%, rgba(220,190,140,.16), transparent 60%),
+        linear-gradient(180deg, rgba(255,255,255,.04), rgba(0,0,0,.38)),
+        #050404;
+      border: 1px solid rgba(255,255,255,.14);
+      box-shadow: 0 0 0 1px rgba(255,255,255,.05) inset, 0 32px 110px rgba(0,0,0,.62);
+    }
+    .drawer .grain{
+      position:absolute; inset:0;
+      background-image:
+        repeating-linear-gradient(90deg, rgba(255,255,255,.035) 0, rgba(255,255,255,.035) 1px, transparent 1px, transparent 26px),
+        repeating-linear-gradient(0deg, rgba(255,255,255,.02) 0, rgba(255,255,255,.02) 1px, transparent 1px, transparent 18px);
+      opacity:.30;
+      pointer-events:none;
+    }
+    .drawer .handle{
+      position:absolute; left:50%; top:18px; transform:translateX(-50%);
+      width: 180px; height: 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.14);
+      box-shadow: 0 0 0 1px rgba(255,255,255,.06) inset;
+      pointer-events:none;
+    }
+    .drawer .lip{
+      position:absolute; left:0; right:0; top:0;
+      height: 54px;
+      background: linear-gradient(180deg, rgba(0,0,0,.0), rgba(0,0,0,.25));
+      pointer-events:none;
+    }
+
+    /* --- Draggable Anchors --- */
+    .anchor{
+      position:absolute;
+      width: 220px; height: 220px;
+      border-radius: 18px;
+      overflow:hidden;
+      box-shadow: 0 0 0 1px rgba(255,255,255,.10) inset, 0 30px 90px rgba(0,0,0,.58);
+      cursor: grab;
+      transform-origin: center;
+    }
+    .anchor:active{ cursor: grabbing; }
+    .anchor img{
+      width:100%; height:100%; object-fit: cover;
+      filter: contrast(1.03) saturate(1.06);
+      opacity:.92;
+      pointer-events:none;
+    }
+    .anchor .caption{
+      position:absolute; left:0; right:0; bottom:0;
+      padding: 10px 12px;
+      font-size: 12px;
+      color: rgba(255,255,255,.82);
+      background: linear-gradient(180deg, transparent, rgba(0,0,0,.62));
+      pointer-events:none;
+    }
+    .anchor.active{
+      outline: 2px solid rgba(255,255,255,.22);
+      outline-offset: 2px;
+    }
+
+    /* Affect pad */
+    .affect-pad{
+      position:relative;
+      width: 220px; height: 220px;
+      border-radius: 999px;
+      background:
+        radial-gradient(circle at 50% 50%, rgba(255,255,255,.09), rgba(255,255,255,.02) 55%, rgba(0,0,0,.0) 62%),
+        conic-gradient(from 0deg, rgba(120,180,255,.20), rgba(255,180,140,.18), rgba(200,140,255,.16), rgba(120,180,255,.20));
+      border: 1px solid rgba(255,255,255,.12);
+      box-shadow: 0 0 0 1px rgba(255,255,255,.04) inset;
+      overflow:hidden;
+    }
+    .affect-pad::after{
+      content:"";
+      position:absolute; inset:12px;
+      border-radius: 999px;
+      border: 1px dashed rgba(255,255,255,.14);
+      opacity:.65;
+    }
+    .affect-dot{
+      position:absolute;
+      width: 10px; height: 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.94);
+      box-shadow: 0 0 0 6px rgba(255,255,255,.12);
+      transform: translate(-50%,-50%);
+      pointer-events:none;
+    }
+
+    /* Plaque */
+    .plaque{
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.03);
+      box-shadow: 0 0 0 1px rgba(255,255,255,.03) inset;
+      border-radius: 18px;
+    }
+
+    /* Truncate share url display */
+    .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+  </style>
+</head>
+
+<body class="min-h-screen bg-[#05060a] text-white">
+  <div class="absolute inset-0 pointer-events-none">
+    <div class="absolute -top-40 -left-40 w-[620px] h-[620px] rounded-full blur-3xl opacity-25 bg-white"></div>
+    <div class="absolute top-[20%] -right-40 w-[560px] h-[560px] rounded-full blur-3xl opacity-18 bg-white"></div>
+  </div>
+
+  <header class="relative z-10 max-w-6xl mx-auto px-6 pt-8 pb-4">
+    <div class="flex items-center justify-between">
+      <div class="text-sm tracking-[.28em] uppercase text-white/60">Emotion Vessel</div>
+      <nav class="text-sm text-white/60 space-x-5">
+        <a href="#/" class="hover:text-white/90">入口</a>
+        <a href="#/guide" class="hover:text-white/90">向导</a>
+        <a href="#/studio" class="hover:text-white/90">制作</a>
+        <a href="#/work" class="hover:text-white/90">作品</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="app" class="relative z-10 max-w-6xl mx-auto px-6 pb-16"></main>
+
+  <script>
+    // -------------------------
+    // State
+    // -------------------------
+    const state = {
+      step: "home",
+      title: "",
+      note: "",
+      affect: { x: 0.55, y: 0.55 }, // 0..1
+      vessel: "tank", // tank | matchbox | drawer
+      createdAt: new Date().toISOString().slice(0,10),
+      ai: { suggestion: "", accepted: false },
+
+      // 多锚点：每个锚点是一张图（未来可替换为高斯渲染对象）
+      anchors: [
+        // { id, imgDataUrl, caption, x, y, scale, rot }
+      ],
+      activeAnchorId: null,
+    };
+
+    const $ = (sel) => document.querySelector(sel);
+    function clamp(v, min, max){ return Math.max(min, Math.min(max, v)); }
+    function uid(){ return Math.random().toString(36).slice(2, 10); }
+
+    function escapeHtml(str){
+      return (str || "")
+        .replaceAll("&","&amp;")
+        .replaceAll("<","&lt;")
+        .replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;")
+        .replaceAll("'","&#039;");
+    }
+
+    function vesselMeta(key){
+      const map = {
+        tank: {
+          name: "玻璃鱼缸",
+          en: "Glass Tank",
+          desc: "透明、可被观看，却依然封闭。适合那些你并不回避，但也不急于触碰的情绪。",
+        },
+        matchbox: {
+          name: "火柴盒",
+          en: "Matchbox",
+          desc: "很小，很近，只容纳一个瞬间。适合短暂却强烈的情绪：不想放大，也不想遗忘。",
+        },
+        drawer: {
+          name: "木质抽屉",
+          en: "Wooden Drawer",
+          desc: "被收纳的、层叠的、尚未整理的。适合复杂、混合、还没准备好被完全打开的情绪。",
+        }
+      };
+      return map[key];
+    }
+
+    function aiSuggest(){
+      const v = state.affect.x; // valence
+      const a = state.affect.y; // arousal
+      const warmth = v >= 0.5 ? "稍微暖一些" : "稍微冷一些";
+      const light = v >= 0.5 ? "更明亮一点" : "更克制一点";
+      const motion = a >= 0.5 ? "让它有一点微动" : "让它更安静地停留";
+      const distance = a >= 0.5 ? "视角可以更近" : "保持一点距离也很好";
+      return `如果你愿意，这段情绪也许适合：${warmth}、${light}，并且${motion}；${distance}。当然，这只是一个提议。`;
+    }
+
+    // -------------------------
+    // Sharing strategy
+    // 1) Short link (NO images): only meta + placements
+    // 2) Export/Import package: includes images (json file)
+    // -------------------------
+    function getSharePayloadNoImages(){
+      return {
+        t: state.title,
+        n: state.note,
+        a: state.affect,
+        v: state.vessel,
+        d: state.createdAt,
+        s: state.ai,
+        anchors: state.anchors.map(x => ({
+          id: x.id,
+          caption: x.caption,
+          x: x.x, y: x.y, scale: x.scale, rot: x.rot
+        }))
+      };
+    }
+
+    function encodeShortPayload(payload){
+      const json = JSON.stringify(payload);
+      return btoa(unescape(encodeURIComponent(json)));
+    }
+
+    function decodeShortPayload(b64){
+      try{
+        const json = decodeURIComponent(escape(atob(b64)));
+        return JSON.parse(json);
+      }catch(e){ return null; }
+    }
+
+    function exportPackage(){
+      const full = {
+        version: 1,
+        createdAt: new Date().toISOString(),
+        state: {
+          title: state.title,
+          note: state.note,
+          affect: state.affect,
+          vessel: state.vessel,
+          createdAt: state.createdAt,
+          ai: state.ai,
+          anchors: state.anchors, // includes imgDataUrl
+        }
+      };
+      const blob = new Blob([JSON.stringify(full, null, 2)], { type: "application/json" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `emotion-vessel-${state.createdAt || "work"}.evessel.json`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+
+    async function importPackage(file){
+      const text = await file.text();
+      const pkg = JSON.parse(text);
+      const st = pkg?.state;
+      if(!st) throw new Error("Invalid package");
+      state.title = st.title || "";
+      state.note = st.note || "";
+      state.affect = st.affect || {x:0.55,y:0.55};
+      state.vessel = st.vessel || "tank";
+      state.createdAt = st.createdAt || new Date().toISOString().slice(0,10);
+      state.ai = st.ai || { suggestion:"", accepted:false };
+      state.anchors = Array.isArray(st.anchors) ? st.anchors : [];
+      state.activeAnchorId = state.anchors[0]?.id || null;
+    }
+
+    // -------------------------
+    // Views
+    // -------------------------
+    function HomeView(){
+      return `
+        <section class="fade-in pt-10 pb-16">
+          <div class="max-w-3xl">
+            <h1 class="text-4xl sm:text-5xl font-light leading-tight">
+              情绪容器 · <span class="text-white/70">Emotion Vessel</span>
+            </h1>
+            <p class="mt-6 text-lg text-white/80 leading-relaxed">
+              有些情绪不需要被分析，<br/>
+              只需要一个地方，安静地存在。
+            </p>
+
+            <div class="mt-10 plaque p-6">
+              <p class="text-white/80 leading-relaxed">
+                我们习惯让算法理解情绪、判断情绪、回应情绪。<br/>
+                但在这里，AI不试图解释你。<br/>
+                它只协助你，为一段情绪选择一个容器——一个透明的、狭小的、或被时间包裹的空间。<br/>
+                你放置的不是数据，而是一段仍在发酵的经验。
+              </p>
+              <div class="mt-6 flex flex-wrap gap-3">
+                <a href="#/guide" class="px-5 py-3 rounded-2xl bg-white text-black text-sm tracking-wide hover:opacity-90">
+                  先看单图转高斯向导
+                </a>
+                <a href="#/studio" class="px-5 py-3 rounded-2xl border border-white/15 text-white/80 text-sm tracking-wide hover:text-white">
+                  直接进入工坊
+                </a>
+              </div>
+              <p class="mt-6 text-xs text-white/55 leading-relaxed">
+                本项目为实验性数字情绪装置。它不提供诊断，也不试图给出答案。
+              </p>
+            </div>
+          </div>
+        </section>
+      `;
+    }
+
+    function GuideView(){
+      return `
+        <section class="fade-in pt-8 pb-12">
+          <div class="grid lg:grid-cols-12 gap-6 items-start">
+            <div class="lg:col-span-8 space-y-6">
+              <div class="plaque p-6">
+                <div class="text-xs tracking-[.28em] uppercase text-white/55">A Path Guide</div>
+                <h2 class="mt-2 text-3xl font-light">单图转高斯 · 向导页</h2>
+                <p class="mt-3 text-white/70 leading-relaxed">
+                  这一步发生在空间之外：你把一张图片交给生成器，带回一个可被安放的立体碎片（PLY）。
+                  在这个原型里，我们先用“图片锚点”模拟拼贴；未来可以接入真实高斯渲染。
+                </p>
+              </div>
+
+              <div class="plaque p-6">
+                <div class="text-xs tracking-[.28em] uppercase text-white/55">Step 1</div>
+                <h3 class="mt-2 text-xl font-light">选择一张图（≥1080P）</h3>
+                <p class="mt-3 text-white/70 leading-relaxed">
+                  建议：主体清晰、光线稳定、背景不要过于复杂。它不必完美，只要与你的记忆有关。
+                </p>
+              </div>
+
+              <div class="plaque p-6">
+                <div class="text-xs tracking-[.28em] uppercase text-white/55">Step 2</div>
+                <h3 class="mt-2 text-xl font-light">打开生成器，运行工作流</h3>
+                <p class="mt-3 text-white/70 leading-relaxed">
+                  这里你可以放外部生成器链接（例如：单图转高斯的在线工作流）。<br/>
+                  运行完成后导出 <span class="mono text-white/80">.PLY</span>。
+                </p>
+                <div class="mt-4 flex flex-wrap gap-3">
+                  <a target="_blank" href="https://example.com" class="px-4 py-2 rounded-2xl bg-white text-black text-sm hover:opacity-90">
+                    打开生成器（替换为你的链接）
+                  </a>
+                  <span class="px-4 py-2 rounded-2xl border border-white/15 text-white/70 text-sm">
+                    导出格式：PLY（建议≤30MB）
+                  </span>
+                </div>
+                <p class="mt-4 text-xs text-white/50">
+                  参考：文档中提到该路径为“复用现成工作流 → 上传图片 → Run → 导出 PLY”。（你已提供的开源流程） 
+                </p>
+              </div>
+
+              <div class="plaque p-6">
+                <div class="text-xs tracking-[.28em] uppercase text-white/55">Step 3</div>
+                <h3 class="mt-2 text-xl font-light">回到工坊：进行拼贴与安放</h3>
+                <p class="mt-3 text-white/70 leading-relaxed">
+                  你可以把“一个情绪”拆成多个碎片：照片、物件、场景的切片。它们共同构成容器内部的地形。
+                </p>
+                <div class="mt-4 flex flex-wrap gap-3">
+                  <a href="#/studio" class="px-4 py-2 rounded-2xl bg-white text-black text-sm hover:opacity-90">进入工坊</a>
+                  <a href="#/place" class="px-4 py-2 rounded-2xl border border-white/15 text-white/80 text-sm hover:text-white">直接进入安放空间</a>
+                </div>
+              </div>
+            </div>
+
+            <aside class="lg:col-span-4 space-y-6">
+              <div class="plaque p-6">
+                <div class="text-xs tracking-[.28em] uppercase text-white/55">Curatorial Note</div>
+                <p class="mt-3 text-white/70 leading-relaxed">
+                  这里的“高斯”不是炫技，而是让记忆拥有体积。<br/>
+                  拼贴不是装饰，而是把情绪变成可被回访的空间结构。
+                </p>
+              </div>
+
+              <div class="plaque p-6">
+                <div class="text-xs tracking-[.28em] uppercase text-white/55">MVP 说明</div>
+                <p class="mt-3 text-white/70 text-sm leading-relaxed">
+                  当前版本：用多张图片锚点模拟多高斯拼贴。<br/>
+                  下一版本：接入 Three.js Gaussian Splatting 渲染 PLY。
+                </p>
+              </div>
+            </aside>
+          </div>
+        </section>
+      `;
+    }
+
+    function StudioView(){
+      const meta = vesselMeta(state.vessel);
+      const suggestion = aiSuggest();
+      state.ai.suggestion = suggestion;
+
+      return `
+        <section class="fade-in pt-8 pb-10">
+          <div class="grid lg:grid-cols-12 gap-6 items-start">
+            <div class="lg:col-span-7 space-y-6">
+              <div class="plaque p-6">
+                <div class="text-xs tracking-[.28em] uppercase text-white/55">Step 1</div>
+                <h2 class="mt-2 text-2xl font-light">记忆碎片（可多选）</h2>
+                <p class="mt-3 text-white/70 leading-relaxed">
+                  你可以上传多张图片锚点，之后把它们共同拼贴进同一个容器。
+                </p>
+
+                <div class="mt-5 grid sm:grid-cols-2 gap-4">
+                  <label class="plaque p-4 cursor-pointer hover:bg-white/5 transition">
+                    <div class="text-sm text-white/80">上传图片锚点（支持多选）</div>
+                    <div class="mt-1 text-xs text-white/55">MVP：图片模拟高斯切片</div>
+                    <input id="imgInput" type="file" accept="image/*" multiple class="hidden" />
+                    <div class="mt-3 text-xs text-white/50">点击此卡片选择文件</div>
+                  </label>
+
+                  <div class="plaque p-4">
+                    <div class="text-sm text-white/80">锚点列表</div>
+                    <div class="mt-3 space-y-2 max-h-[220px] overflow-auto pr-1">
+                      ${state.anchors.length ? state.anchors.map(a => `
+                        <button data-pick="${a.id}" class="w-full flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 ${state.activeAnchorId===a.id?'bg-white/5':''}">
+                          <div class="w-12 h-12 rounded-lg overflow-hidden border border-white/10 bg-white/5 shrink-0">
+                            <img src="${a.imgDataUrl}" class="w-full h-full object-cover opacity-90" />
+                          </div>
+                          <div class="flex-1 text-left">
+                            <div class="text-xs text-white/80">${escapeHtml(a.caption || "未命名碎片")}</div>
+                            <div class="text-[11px] text-white/45">${a.id}</div>
+                          </div>
+                          <button data-del="${a.id}" class="text-xs text-white/55 hover:text-white px-2 py-1 rounded-lg border border-white/10">删</button>
+                        </button>
+                      `).join("") : `<div class="text-xs text-white/45">尚未上传</div>`}
+                    </div>
+                  </div>
+                </div>
+
+                <div class="mt-5 grid sm:grid-cols-2 gap-4">
+                  <div>
+                    <div class="text-xs tracking-[.18em] uppercase text-white/55">作品标题</div>
+                    <input id="titleInput" value="${escapeHtml(state.title)}" placeholder="你也可以不命名"
+                      class="mt-2 w-full px-4 py-3 rounded-2xl bg-white/5 border border-white/10 text-white/90 placeholder:text-white/35 focus:outline-none focus:ring-2 focus:ring-white/15"/>
+                  </div>
+                  <div>
+                    <div class="text-xs tracking-[.18em] uppercase text-white/55">一句标记（可选）</div>
+                    <input id="noteInput" value="${escapeHtml(state.note)}" placeholder="不是解释，只是标记"
+                      class="mt-2 w-full px-4 py-3 rounded-2xl bg-white/5 border border-white/10 text-white/90 placeholder:text-white/35 focus:outline-none focus:ring-2 focus:ring-white/15"/>
+                  </div>
+                </div>
+              </div>
+
+              <div class="plaque p-6">
+                <div class="text-xs tracking-[.28em] uppercase text-white/55">Step 2</div>
+                <h2 class="mt-2 text-2xl font-light">情绪位置</h2>
+                <p class="mt-3 text-white/70 leading-relaxed">
+                  情绪并不总是一个词。有时，它更像一个位置。你不需要精确。
+                </p>
+
+                <div class="mt-5 flex flex-col sm:flex-row gap-6 items-start">
+                  <div>
+                    <div id="affectPad" class="affect-pad">
+                      <div id="affectDot" class="affect-dot" style="left:${state.affect.x*100}%; top:${state.affect.y*100}%"></div>
+                    </div>
+                    <div class="mt-3 text-xs text-white/55 leading-relaxed">
+                      横轴：接近 ↔ 远离<br/>
+                      纵轴：平静 ↔ 激活
+                    </div>
+                  </div>
+
+                  <div class="flex-1">
+                    <div class="text-xs tracking-[.18em] uppercase text-white/55">AI 旁白（弱提示）</div>
+                    <div class="mt-2 plaque p-4 text-white/75 leading-relaxed">
+                      ${escapeHtml(suggestion)}
+                    </div>
+                    <div class="mt-3 flex gap-3">
+                      <button id="acceptSuggest" class="px-4 py-2 rounded-2xl bg-white text-black text-sm hover:opacity-90">
+                        接受建议
+                      </button>
+                      <button id="rejectSuggest" class="px-4 py-2 rounded-2xl border border-white/15 text-white/80 text-sm hover:text-white">
+                        我自己调整
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="plaque p-6">
+                <div class="text-xs tracking-[.28em] uppercase text-white/55">Step 3</div>
+                <h2 class="mt-2 text-2xl font-light">选择情绪容器</h2>
+                <p class="mt-3 text-white/70 leading-relaxed">
+                  不同的情绪，适合被放置在不同的空间里。这不是风格选择，而是一种安放方式。
+                </p>
+
+                <div class="mt-5 grid sm:grid-cols-3 gap-4">
+                  ${VesselCard("tank")}
+                  ${VesselCard("matchbox")}
+                  ${VesselCard("drawer")}
+                </div>
+
+                <div class="mt-5 plaque p-4">
+                  <div class="text-sm text-white/85">${meta.name} · <span class="text-white/55">${meta.en}</span></div>
+                  <div class="mt-2 text-white/70 text-sm leading-relaxed">${escapeHtml(meta.desc)}</div>
+                </div>
+
+                <div class="mt-6 flex flex-wrap gap-3">
+                  <a href="#/place" class="px-5 py-3 rounded-2xl bg-white text-black text-sm tracking-wide hover:opacity-90">
+                    进入安放空间
+                  </a>
+                  <a href="#/guide" class="px-5 py-3 rounded-2xl border border-white/15 text-white/80 text-sm tracking-wide hover:text-white">
+                    回到单图转高斯向导
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            <aside class="lg:col-span-5 space-y-6">
+              <div class="plaque p-6">
+                <div class="text-xs tracking-[.28em] uppercase text-white/55">Curatorial Note</div>
+                <h3 class="mt-2 text-xl font-light">这里不解释你</h3>
+                <p class="mt-3 text-white/70 leading-relaxed">
+                  AI 在此不负责判断对错，也不负责诊断。<br/>
+                  它只提供脚手架：把情绪从“标签”变成“可编辑的空间经验”。
+                </p>
+              </div>
+
+              <div class="plaque p-6">
+                <div class="text-xs tracking-[.28em] uppercase text-white/55">Export / Import</div>
+                <p class="mt-3 text-white/70 text-sm leading-relaxed">
+                  分享链接将不包含图片（避免超长 URL）。<br/>
+                  若要跨设备完整分享，请导出作品包并在另一端导入。
+                </p>
+                <div class="mt-4 flex flex-wrap gap-3">
+                  <button id="exportPkg" class="px-4 py-2 rounded-2xl bg-white text-black text-sm hover:opacity-90">导出作品包</button>
+                  <label class="px-4 py-2 rounded-2xl border border-white/15 text-white/80 text-sm hover:text-white cursor-pointer">
+                    导入作品包
+                    <input id="importPkg" type="file" accept="application/json" class="hidden" />
+                  </label>
+                </div>
+              </div>
+            </aside>
+          </div>
+        </section>
+      `;
+    }
+
+    function PlacementView(){
+      const meta = vesselMeta(state.vessel);
+      const hasAnchors = state.anchors.length > 0;
+      const active = getActiveAnchor();
+
+      return `
+        <section class="fade-in pt-8 pb-12">
+          <div class="grid lg:grid-cols-12 gap-6 items-start">
+            <div class="lg:col-span-8 space-y-4">
+              <div class="flex flex-wrap items-end justify-between gap-4">
+                <div>
+                  <div class="text-xs tracking-[.28em] uppercase text-white/55">Installation Room</div>
+                  <h2 class="mt-2 text-3xl font-light">现在，把它放进去</h2>
+                  <p class="mt-2 text-white/70">${meta.name} · <span class="text-white/50">${meta.en}</span></p>
+                </div>
+                <div class="flex gap-2">
+                  <a href="#/studio" class="px-4 py-2 rounded-2xl border border-white/15 text-white/80 text-sm hover:text-white">返回编辑</a>
+                  <button id="publish" class="px-4 py-2 rounded-2xl bg-white text-black text-sm hover:opacity-90">生成作品页</button>
+                </div>
+              </div>
+
+              <div id="vesselStage" class="vessel ${state.vessel}">
+                ${VesselDecor(state.vessel)}
+                ${hasAnchors ? state.anchors.map(a => AnchorMarkup(a)).join("") : `
+                  <div class="absolute inset-0 flex items-center justify-center">
+                    <div class="plaque p-5 text-sm text-white/70">
+                      还没有碎片。<a class="underline text-white" href="#/studio">回到工坊上传</a>
+                    </div>
+                  </div>
+                `}
+              </div>
+
+              <div class="flex flex-wrap gap-3 text-xs text-white/55">
+                <span class="plaque px-3 py-2">拖拽：移动</span>
+                <span class="plaque px-3 py-2">滚轮/双指：缩放</span>
+                <span class="plaque px-3 py-2">单击碎片：选中</span>
+              </div>
+            </div>
+
+            <aside class="lg:col-span-4 space-y-6">
+              <div class="plaque p-6">
+                <div class="text-xs tracking-[.28em] uppercase text-white/55">Selected Fragment</div>
+                ${active ? `
+                  <div class="mt-3 flex items-center gap-3">
+                    <div class="w-14 h-14 rounded-xl overflow-hidden border border-white/10 bg-white/5 shrink-0">
+                      <img src="${active.imgDataUrl}" class="w-full h-full object-cover opacity-90" />
+                    </div>
+                    <div class="flex-1">
+                      <div class="text-sm text-white/85">${escapeHtml(active.caption || "未命名碎片")}</div>
+                      <div class="text-xs text-white/45">${active.id}</div>
+                    </div>
+                    <button id="delActive" class="text-xs text-white/70 hover:text-white px-3 py-2 rounded-2xl border border-white/15">删除</button>
+                  </div>
+
+                  <div class="mt-5 space-y-3">
+                    <div>
+                      <label class="text-xs text-white/55">缩放</label>
+                      <input id="scaleRange" type="range" min="0.4" max="2.2" step="0.01" value="${active.scale}" class="w-full"/>
+                    </div>
+                    <div>
+                      <label class="text-xs text-white/55">旋转</label>
+                      <input id="rotRange" type="range" min="-180" max="180" step="1" value="${active.rot}" class="w-full"/>
+                    </div>
+                    <div class="flex gap-3">
+                      <button id="bringFront" class="px-4 py-2 rounded-2xl border border-white/15 text-white/80 text-sm hover:text-white">置顶</button>
+                      <button id="centerActive" class="px-4 py-2 rounded-2xl border border-white/15 text-white/80 text-sm hover:text-white">置中</button>
+                    </div>
+                  </div>
+                ` : `
+                  <div class="mt-3 text-sm text-white/60">
+                    先在容器里点击一个碎片。
+                  </div>
+                `}
+              </div>
+
+              <div class="plaque p-6">
+                <div class="text-xs tracking-[.28em] uppercase text-white/55">AI 旁白（记录）</div>
+                <div class="mt-3 text-white/75 leading-relaxed text-sm">
+                  ${escapeHtml(state.ai.suggestion || aiSuggest())}
+                </div>
+                <div class="mt-3 text-xs text-white/55">
+                  ${state.ai.accepted ? "你选择保留了部分建议。" : "你选择自行调整。"}
+                </div>
+              </div>
+
+              <div class="plaque p-6">
+                <div class="text-xs tracking-[.28em] uppercase text-white/55">Export / Import</div>
+                <div class="mt-4 flex flex-wrap gap-3">
+                  <button id="exportPkg2" class="px-4 py-2 rounded-2xl bg-white text-black text-sm hover:opacity-90">导出作品包</button>
+                  <label class="px-4 py-2 rounded-2xl border border-white/15 text-white/80 text-sm hover:text-white cursor-pointer">
+                    导入作品包
+                    <input id="importPkg2" type="file" accept="application/json" class="hidden" />
+                  </label>
+                </div>
+              </div>
+            </aside>
+          </div>
+        </section>
+      `;
+    }
+
+    function WorkView(){
+      // restore from short link ?s=
+      const url = new URL(location.href);
+      const s = url.searchParams.get("s");
+      if(s){
+        const decoded = decodeShortPayload(s);
+        if(decoded){
+          state.title = decoded.t || state.title;
+          state.note = decoded.n || state.note;
+          state.affect = decoded.a || state.affect;
+          state.vessel = decoded.v || state.vessel;
+          state.createdAt = decoded.d || state.createdAt;
+          state.ai = decoded.s || state.ai;
+
+          // positions only (no images) — keep existing images if any
+          if(Array.isArray(decoded.anchors) && decoded.anchors.length){
+            const byId = new Map(state.anchors.map(a => [a.id, a]));
+            decoded.anchors.forEach(p => {
+              const a = byId.get(p.id);
+              if(a){
+                a.caption = p.caption ?? a.caption;
+                a.x = p.x ?? a.x; a.y = p.y ?? a.y;
+                a.scale = p.scale ?? a.scale;
+                a.rot = p.rot ?? a.rot;
+              }
+            });
+          }
+        }
+      }
+
+      const meta = vesselMeta(state.vessel);
+      const title = state.title?.trim() ? state.title.trim() : "《未命名的容器》";
+      const affectText = `(${(state.affect.x*100).toFixed(0)}%, ${(state.affect.y*100).toFixed(0)}%)`;
+
+      const shortShareUrl = (() => {
+        const payload = getSharePayloadNoImages();
+        const enc = encodeShortPayload(payload);
+        return `${location.origin}${location.pathname}#/work?s=${enc}`;
+      })();
+
+      return `
+        <section class="fade-in pt-8 pb-14">
+          <div class="grid lg:grid-cols-12 gap-6 items-start">
+            <div class="lg:col-span-8 space-y-6">
+              <div>
+                <div class="text-xs tracking-[.28em] uppercase text-white/55">Exhibited Work</div>
+                <h1 class="mt-2 text-4xl font-light leading-tight">${escapeHtml(title)}</h1>
+                <div class="mt-4 flex flex-wrap gap-3 text-xs text-white/55">
+                  <span class="plaque px-3 py-2">情绪位置：已记录 ${escapeHtml(affectText)}</span>
+                  <span class="plaque px-3 py-2">容器类型：${meta.name}</span>
+                  <span class="plaque px-3 py-2">创建时间：${escapeHtml(state.createdAt)}</span>
+                </div>
+              </div>
+
+              <div class="plaque p-6 text-white/80 leading-relaxed">
+                这是一段被暂时安放的情绪。<br/>
+                它没有被解释，也没有被解决。<br/>
+                它只是被允许，在这里存在。
+              </div>
+
+              <div class="vessel ${state.vessel}">
+                ${VesselDecor(state.vessel)}
+                ${state.anchors.length ? state.anchors.map(a => AnchorMarkup(a, true)).join("") : `
+                  <div class="absolute inset-0 flex items-center justify-center">
+                    <div class="text-xs text-white/45">（暂无碎片）</div>
+                  </div>
+                `}
+              </div>
+
+              <div class="flex flex-wrap gap-3">
+                <a href="#/studio" class="px-5 py-3 rounded-2xl border border-white/15 text-white/80 text-sm hover:text-white">
+                  再做一个容器
+                </a>
+                <a href="#/place" class="px-5 py-3 rounded-2xl border border-white/15 text-white/80 text-sm hover:text-white">
+                  回到安放空间
+                </a>
+                <button id="copyLink" class="px-5 py-3 rounded-2xl bg-white text-black text-sm hover:opacity-90">
+                  复制分享链接（不含图片）
+                </button>
+              </div>
+
+              <div class="plaque p-5">
+                <div class="text-xs tracking-[.28em] uppercase text-white/55">Share</div>
+                <p class="mt-3 text-white/70 text-sm leading-relaxed">
+                  链接不会携带图片，避免超长 URL。跨设备完整分享请使用导出作品包。
+                </p>
+                <div class="mt-3 mono text-xs text-white/50 break-all">
+                  ${escapeHtml(shortShareUrl)}
+                </div>
+              </div>
+            </div>
+
+            <aside class="lg:col-span-4 space-y-6">
+              <div class="plaque p-6">
+                <div class="text-xs tracking-[.28em] uppercase text-white/55">制作过程</div>
+                <ul class="mt-3 text-white/75 text-sm leading-relaxed list-disc list-inside space-y-2">
+                  <li>我上传了多张与这段记忆有关的碎片</li>
+                  <li>我为它选择了一个情绪位置</li>
+                  <li>AI 提出了空间与光线的建议</li>
+                  <li>我保留 / 修改 / 拒绝了其中的一部分</li>
+                </ul>
+                <div class="mt-4 text-xs text-white/55">这是一次协作，而不是自动生成。</div>
+              </div>
+
+              <div class="plaque p-6">
+                <div class="text-xs tracking-[.28em] uppercase text-white/55">你的标记</div>
+                <div class="mt-3 text-white/80 leading-relaxed">
+                  ${state.note?.trim() ? escapeHtml(state.note.trim()) : `<span class="text-white/45">（你没有留下文字标记）</span>`}
+                </div>
+              </div>
+
+              <div class="plaque p-6">
+                <div class="text-xs tracking-[.28em] uppercase text-white/55">Export / Import</div>
+                <div class="mt-4 flex flex-wrap gap-3">
+                  <button id="exportPkg3" class="px-4 py-2 rounded-2xl bg-white text-black text-sm hover:opacity-90">导出作品包（含图片）</button>
+                  <label class="px-4 py-2 rounded-2xl border border-white/15 text-white/80 text-sm hover:text-white cursor-pointer">
+                    导入作品包
+                    <input id="importPkg3" type="file" accept="application/json" class="hidden" />
+                  </label>
+                </div>
+              </div>
+
+              <div class="plaque p-6">
+                <div class="text-xs tracking-[.28em] uppercase text-white/55">伦理声明</div>
+                <p class="mt-3 text-white/70 text-sm leading-relaxed">
+                  Emotion Vessel 不判断情绪的正确与否。<br/>
+                  它不是心理诊断工具，也不提供干预建议。<br/>
+                  它只是一个空间。
+                </p>
+              </div>
+            </aside>
+          </div>
+        </section>
+      `;
+    }
+
+    // -------------------------
+    // Markup builders
+    // -------------------------
+    function VesselCard(key){
+      const meta = vesselMeta(key);
+      const active = state.vessel === key;
+      return `
+        <button data-vessel="${key}"
+          class="text-left plaque p-4 hover:bg-white/5 transition ${active ? 'ring-2 ring-white/20' : ''}">
+          <div class="text-sm text-white/85">${meta.name}</div>
+          <div class="text-xs text-white/50 mt-1">${meta.en}</div>
+          <div class="text-xs text-white/65 mt-3 leading-relaxed">${escapeHtml(meta.desc)}</div>
+        </button>
+      `;
+    }
+
+    function VesselDecor(key){
+      if(key === "tank"){
+        return `<div class="rim"></div><div class="glass-line"></div>`;
+      }
+      if(key === "matchbox"){
+        return `<div class="inner"></div><div class="label">matchbox</div>`;
+      }
+      if(key === "drawer"){
+        return `<div class="grain"></div><div class="handle"></div><div class="lip"></div>`;
+      }
+      return "";
+    }
+
+    function AnchorStyle(a){
+      const left = (a.x * 100).toFixed(3);
+      const top  = (a.y * 100).toFixed(3);
+      return `left:${left}%; top:${top}%; transform: translate(-50%,-50%) scale(${a.scale}) rotate(${a.rot}deg);`;
+    }
+
+    function AnchorMarkup(a, isStatic=false){
+      const cap = a.caption?.trim() ? a.caption.trim() : "一段被暂时安放的碎片";
+      const activeCls = (state.activeAnchorId===a.id && !isStatic) ? "active" : "";
+      return `
+        <div data-anchor="${a.id}" class="anchor ${activeCls}" style="${AnchorStyle(a)} ${isStatic ? 'cursor:default;' : ''}">
+          <img src="${a.imgDataUrl}" alt="fragment"/>
+          <div class="caption">${escapeHtml(cap)}</div>
+        </div>
+      `;
+    }
+
+    function getActiveAnchor(){
+      return state.anchors.find(a => a.id === state.activeAnchorId) || null;
+    }
+
+    // -------------------------
+    // Router + bindings
+    // -------------------------
+    function render(){
+      const hash = location.hash || "#/";
+      const app = $("#app");
+
+      if(hash.startsWith("#/guide")){
+        state.step = "guide";
+        app.innerHTML = GuideView();
+        return;
+      }
+      if(hash.startsWith("#/studio")){
+        state.step = "studio";
+        app.innerHTML = StudioView();
+        bindStudio();
+        return;
+      }
+      if(hash.startsWith("#/place")){
+        state.step = "place";
+        app.innerHTML = PlacementView();
+        bindPlacement();
+        return;
+      }
+      if(hash.startsWith("#/work")){
+        state.step = "work";
+        app.innerHTML = WorkView();
+        bindWork();
+        return;
+      }
+
+      state.step = "home";
+      app.innerHTML = HomeView();
+    }
+
+    function bindStudio(){
+      // multi image upload
+      const input = $("#imgInput");
+      input.addEventListener("change", (e)=>{
+        const files = Array.from(e.target.files || []);
+        if(!files.length) return;
+
+        // read sequentially
+        let idx = 0;
+        const readNext = () => {
+          const file = files[idx++];
+          const reader = new FileReader();
+          reader.onload = () => {
+            const id = uid();
+            state.anchors.push({
+              id,
+              imgDataUrl: reader.result,
+              caption: "",
+              x: 0.5 + (Math.random()*0.08 - 0.04),
+              y: 0.55 + (Math.random()*0.08 - 0.04),
+              scale: 1.0,
+              rot: 0
+            });
+            state.activeAnchorId = id;
+            if(idx < files.length) readNext();
+            else render();
+          };
+          reader.readAsDataURL(file);
+        };
+        readNext();
+      });
+      input.parentElement.addEventListener("click", ()=> input.click());
+
+      $("#noteInput").addEventListener("input",(e)=>{ state.note = e.target.value; });
+      $("#titleInput").addEventListener("input",(e)=>{ state.title = e.target.value; });
+
+      // pick/delete anchor
+      document.querySelectorAll("[data-pick]").forEach(btn=>{
+        btn.addEventListener("click",(ev)=>{
+          const id = btn.getAttribute("data-pick");
+          state.activeAnchorId = id;
+          render();
+        });
+      });
+      document.querySelectorAll("[data-del]").forEach(btn=>{
+        btn.addEventListener("click",(ev)=>{
+          ev.stopPropagation();
+          const id = btn.getAttribute("data-del");
+          state.anchors = state.anchors.filter(a => a.id !== id);
+          if(state.activeAnchorId === id){
+            state.activeAnchorId = state.anchors[0]?.id || null;
+          }
+          render();
+        });
+      });
+
+      // affect pad
+      const pad = $("#affectPad");
+      pad.addEventListener("pointerdown",(e)=>{
+        const rect = pad.getBoundingClientRect();
+        const x = clamp((e.clientX - rect.left)/rect.width, 0, 1);
+        const y = clamp((e.clientY - rect.top)/rect.height, 0, 1);
+        state.affect = {x,y};
+        render();
+      });
+
+      $("#acceptSuggest").addEventListener("click", ()=>{
+        state.ai.accepted = true;
+        render();
+      });
+      $("#rejectSuggest").addEventListener("click", ()=>{
+        state.ai.accepted = false;
+        render();
+      });
+
+      // vessel choose
+      document.querySelectorAll("[data-vessel]").forEach(btn=>{
+        btn.addEventListener("click", ()=>{
+          state.vessel = btn.getAttribute("data-vessel");
+          render();
+        });
+      });
+
+      // export/import
+      $("#exportPkg").addEventListener("click", exportPackage);
+      $("#importPkg").addEventListener("change", async (e)=>{
+        const f = e.target.files?.[0];
+        if(!f) return;
+        try{
+          await importPackage(f);
+          location.hash = "#/studio";
+          render();
+        }catch(err){
+          alert("导入失败：文件格式不正确");
+        }
+      });
+    }
+
+    function bindPlacement(){
+      const stage = $("#vesselStage");
+
+      // click to select anchor
+      stage.addEventListener("click",(e)=>{
+        const el = e.target.closest("[data-anchor]");
+        if(!el) return;
+        const id = el.getAttribute("data-anchor");
+        state.activeAnchorId = id;
+        render();
+      });
+
+      // drag anchors
+      let draggingId = null;
+      let pid = null;
+
+      stage.addEventListener("pointerdown",(e)=>{
+        const el = e.target.closest("[data-anchor]");
+        if(!el) return;
+        draggingId = el.getAttribute("data-anchor");
+        pid = e.pointerId;
+        el.setPointerCapture(pid);
+      });
+
+      stage.addEventListener("pointermove",(e)=>{
+        if(!draggingId) return;
+        const a = state.anchors.find(x => x.id === draggingId);
+        if(!a) return;
+        const rect = stage.getBoundingClientRect();
+        const x = clamp((e.clientX - rect.left)/rect.width, 0.05, 0.95);
+        const y = clamp((e.clientY - rect.top)/rect.height, 0.08, 0.95);
+        a.x = x; a.y = y;
+        const el = stage.querySelector(`[data-anchor="${draggingId}"]`);
+        if(el) el.style.cssText = AnchorStyle(a);
+      });
+
+      stage.addEventListener("pointerup",(e)=>{
+        if(!draggingId) return;
+        const el = stage.querySelector(`[data-anchor="${draggingId}"]`);
+        try{ el?.releasePointerCapture(pid); }catch{}
+        draggingId = null;
+        pid = null;
+      });
+
+      // wheel zoom for active anchor
+      stage.addEventListener("wheel",(e)=>{
+        const active = getActiveAnchor();
+        if(!active) return;
+        e.preventDefault();
+        const delta = Math.sign(e.deltaY);
+        active.scale = clamp(active.scale + (delta>0 ? -0.03 : 0.03), 0.4, 2.2);
+        const scale = $("#scaleRange");
+        if(scale) scale.value = active.scale.toFixed(2);
+        const el = stage.querySelector(`[data-anchor="${active.id}"]`);
+        if(el) el.style.cssText = AnchorStyle(active);
+      }, { passive:false });
+
+      // sidebar controls
+      const active = getActiveAnchor();
+
+      $("#scaleRange")?.addEventListener("input",(e)=>{
+        const a = getActiveAnchor(); if(!a) return;
+        a.scale = parseFloat(e.target.value);
+        const el = stage.querySelector(`[data-anchor="${a.id}"]`);
+        if(el) el.style.cssText = AnchorStyle(a);
+      });
+
+      $("#rotRange")?.addEventListener("input",(e)=>{
+        const a = getActiveAnchor(); if(!a) return;
+        a.rot = parseFloat(e.target.value);
+        const el = stage.querySelector(`[data-anchor="${a.id}"]`);
+        if(el) el.style.cssText = AnchorStyle(a);
+      });
+
+      $("#centerActive")?.addEventListener("click", ()=>{
+        const a = getActiveAnchor(); if(!a) return;
+        a.x = 0.5; a.y = 0.55;
+        render();
+      });
+
+      $("#bringFront")?.addEventListener("click", ()=>{
+        const a = getActiveAnchor(); if(!a) return;
+        state.anchors = state.anchors.filter(x => x.id !== a.id);
+        state.anchors.push(a);
+        render();
+      });
+
+      $("#delActive")?.addEventListener("click", ()=>{
+        const a = getActiveAnchor(); if(!a) return;
+        state.anchors = state.anchors.filter(x => x.id !== a.id);
+        state.activeAnchorId = state.anchors[0]?.id || null;
+        render();
+      });
+
+      $("#exportPkg2")?.addEventListener("click", exportPackage);
+      $("#importPkg2")?.addEventListener("change", async (e)=>{
+        const f = e.target.files?.[0];
+        if(!f) return;
+        try{
+          await importPackage(f);
+          render();
+        }catch(err){
+          alert("导入失败：文件格式不正确");
+        }
+      });
+
+      $("#publish")?.addEventListener("click", ()=>{
+        // generate work link with short payload (no images)
+        const payload = getSharePayloadNoImages();
+        const enc = encodeShortPayload(payload);
+        const url = `${location.origin}${location.pathname}#/work?s=${enc}`;
+        history.replaceState({}, "", url);
+        location.hash = "#/work";
+        render();
+      });
+    }
+
+    function bindWork(){
+      const url = new URL(location.href);
+      const s = url.searchParams.get("s");
+      const shareUrl = s ? `${location.origin}${location.pathname}#/work?s=${s}` : `${location.origin}${location.pathname}#/work`;
+
+      $("#copyLink")?.addEventListener("click", async ()=>{
+        try{
+          await navigator.clipboard.writeText(shareUrl);
+          alert("已复制分享链接（不含图片）");
+        }catch(e){
+          prompt("复制这个链接：", shareUrl);
+        }
+      });
+
+      $("#exportPkg3")?.addEventListener("click", exportPackage);
+      $("#importPkg3")?.addEventListener("change", async (e)=>{
+        const f = e.target.files?.[0];
+        if(!f) return;
+        try{
+          await importPackage(f);
+          location.hash = "#/work";
+          render();
+        }catch(err){
+          alert("导入失败：文件格式不正确");
+        }
+      });
+    }
+
+    window.addEventListener("hashchange", render);
+    render();
+  </script>
+</body>
+</html>
