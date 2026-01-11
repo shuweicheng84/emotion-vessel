@@ -1,84 +1,219 @@
-<!DOCTYPE html>
-<html lang="zh">
+<!doctype html>
+<html lang="zh-CN">
 <head>
-  <meta charset="UTF-8" />
-  <title>Emotion Vessel · 3D Viewer</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Emotion Vessel · 3D 展厅</title>
   <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      overflow: hidden;
-      background: #000;
+    html, body { margin: 0; height: 100%; background: #0b0c10; color: #e6e6e6; font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", Arial, sans-serif; }
+    .wrap { display: grid; grid-template-columns: 320px 1fr; height: 100%; }
+    .side {
+      border-right: 1px solid rgba(255,255,255,.08);
+      padding: 16px 14px;
+      background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,0));
+      overflow: auto;
     }
-    #hint {
-      position: fixed;
-      bottom: 16px;
-      left: 16px;
-      color: #aaa;
+    .brand { font-size: 14px; letter-spacing: .12em; opacity: .8; margin: 6px 0 14px; }
+    .h1 { font-size: 18px; margin: 0 0 10px; }
+    .hint { font-size: 12px; opacity: .7; line-height: 1.6; margin-bottom: 14px; }
+    .list { display: grid; gap: 10px; }
+    .item {
+      display: block;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.03);
+      border-radius: 12px;
+      padding: 10px 10px;
+      cursor: pointer;
+      transition: .15s;
+    }
+    .item:hover { transform: translateY(-1px); border-color: rgba(255,255,255,.22); }
+    .item .t { font-size: 13px; margin: 0 0 4px; }
+    .item .s { font-size: 12px; opacity: .65; margin: 0; }
+    .topbar {
+      display: flex; gap: 10px; align-items: center; justify-content: space-between;
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      background: rgba(0,0,0,.25);
+    }
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      border: 1px solid rgba(255,255,255,.16);
+      background: rgba(255,255,255,.06);
+      color: #fff;
+      padding: 8px 10px;
+      border-radius: 10px;
+      text-decoration: none;
       font-size: 12px;
-      font-family: sans-serif;
+      cursor: pointer;
+    }
+    .btn:hover { border-color: rgba(255,255,255,.28); }
+    #viewerHost { position: relative; height: calc(100% - 48px); }
+    #canvasWrap { position: absolute; inset: 0; }
+    .status {
+      position: absolute; left: 12px; bottom: 12px;
+      font-size: 12px; opacity: .8;
+      background: rgba(0,0,0,.35);
+      border: 1px solid rgba(255,255,255,.10);
+      padding: 8px 10px; border-radius: 10px;
+      max-width: min(520px, calc(100% - 24px));
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
   </style>
 </head>
 <body>
-  <div id="hint">拖拽旋转 · 滚轮缩放</div>
+  <div class="wrap">
+    <aside class="side">
+      <div class="brand">EMOTION VESSEL</div>
+      <h1 class="h1">3D 情绪容器 · 展厅</h1>
+      <div class="hint">
+        点击左侧作品加载 3D 高斯场景。<br/>
+        说明：这些 .ply 文件来自 Sharp 单图生成的 3D Gaussian Splats，并经过 Supersplat 精修裁剪。
+      </div>
 
+      <div class="list" id="list"></div>
+
+      <div style="margin-top:14px; opacity:.7; font-size:12px; line-height:1.6;">
+        小提示：你也可以用 URL 直达某个作品：<br/>
+        <code style="opacity:.9">viewer.html?work=01_figure</code>
+      </div>
+    </aside>
+
+    <main>
+      <div class="topbar">
+        <div style="font-size:12px; opacity:.75" id="nowTitle">未加载</div>
+        <div style="display:flex; gap:10px;">
+          <a class="btn" href="index.html">返回首页</a>
+          <button class="btn" id="copyLinkBtn">复制当前作品链接</button>
+        </div>
+      </div>
+
+      <div id="viewerHost">
+        <div id="canvasWrap"></div>
+        <div class="status" id="status">准备就绪</div>
+      </div>
+    </main>
+  </div>
+
+  <!-- GaussianSplats3D（浏览器端渲染 3DGS/PLY） -->
   <script type="module">
-    import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160/build/three.module.js";
-    import { OrbitControls } from "https://cdn.jsdelivr.net/npm/three@0.160/examples/jsm/controls/OrbitControls.js";
-    import { PLYLoader } from "https://cdn.jsdelivr.net/npm/three@0.160/examples/jsm/loaders/PLYLoader.js";
+    /**
+     * ✅ 你只需要改这里三项：
+     * - OWNER：GitHub 用户名
+     * - REPO：仓库名
+     * - TAG：Release 的 tag（你截图里是 v0.1）
+     */
+    const OWNER = "shuweicheng84";
+    const REPO  = "emotion-vessel";
+    const TAG   = "v0.1";
 
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x000000);
+    // 你的 Release 里上传的 ply 文件名（要和 release 资产名完全一致）
+    const WORKS = [
+      { id: "01_figure",    title: "01 Figure",    file: "01_figure.ply" },
+      { id: "02_sculpture", title: "02 Sculpture", file: "02_sculpture.ply" },
+      { id: "03_painting",  title: "03 Painting",  file: "03_painting.ply" },
+      { id: "04_ecnu",      title: "04 ECNU",      file: "04_ecnu.ply" },
+      { id: "08_figure",    title: "08 Figure",    file: "08_figure.ply" }
+    ];
 
-    const camera = new THREE.PerspectiveCamera(
-      60,
-      window.innerWidth / window.innerHeight,
-      0.01,
-      1000
-    );
-    camera.position.set(0, 0, 2);
+    const statusEl = document.getElementById("status");
+    const listEl = document.getElementById("list");
+    const nowTitleEl = document.getElementById("nowTitle");
+    const copyLinkBtn = document.getElementById("copyLinkBtn");
+    const canvasWrap = document.getElementById("canvasWrap");
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    document.body.appendChild(renderer.domElement);
-
-    const controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
-
-    const light = new THREE.HemisphereLight(0xffffff, 0x444444, 1.0);
-    scene.add(light);
-
-    const loader = new PLYLoader();
-
-    // 🔴 把这里替换成你自己的 Release 链接
-    const PLY_URL =
-      "https://github.com/shuweicheng84/emotion-vessel/releases/download/v0.1/01_figure.ply";
-
-    loader.load(PLY_URL, geometry => {
-      geometry.computeVertexNormals();
-
-      const material = new THREE.PointsMaterial({
-        size: 0.003,
-        vertexColors: true
-      });
-
-      const points = new THREE.Points(geometry, material);
-      scene.add(points);
-    });
-
-    function animate() {
-      requestAnimationFrame(animate);
-      controls.update();
-      renderer.render(scene, camera);
+    function releaseUrl(filename) {
+      // GitHub Release 资产直链：/releases/download/<tag>/<file>
+      return `https://github.com/${OWNER}/${REPO}/releases/download/${TAG}/${encodeURIComponent(filename)}`;
     }
 
-    animate();
+    function setStatus(t) { statusEl.textContent = t; }
 
-    window.addEventListener("resize", () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
+    // 渲染左侧列表
+    WORKS.forEach(w => {
+      const a = document.createElement("a");
+      a.className = "item";
+      a.href = `?work=${encodeURIComponent(w.id)}`;
+      a.innerHTML = `<p class="t">${w.title}</p><p class="s">${w.file}</p>`;
+      listEl.appendChild(a);
+    });
+
+    // 动态加载 GaussianSplats3D（ESM）
+    // 使用方式参考：社区/官方示例中 Viewer.addSplatScene 的调用方式 
+    const mod = await import("https://unpkg.com/gaussian-splats-3d@0.4.7/build/gaussian-splats-3d.module.js");
+    const { Viewer } = mod;
+
+    let viewer = null;
+    let currentWork = null;
+
+    function clearCanvasWrap() {
+      canvasWrap.innerHTML = "";
+    }
+
+    async function loadWorkById(id) {
+      const w = WORKS.find(x => x.id === id) || WORKS[0];
+      currentWork = w;
+
+      const url = releaseUrl(w.file);
+      nowTitleEl.textContent = `当前：${w.title}（来自 Release：${TAG}）`;
+      setStatus(`加载中：${url}`);
+
+      // 重新初始化 viewer，避免切换作品时残留
+      clearCanvasWrap();
+
+      // 创建一个容器给 Viewer 挂 canvas
+      const host = document.createElement("div");
+      host.style.position = "absolute";
+      host.style.inset = "0";
+      canvasWrap.appendChild(host);
+
+      // 初始化 Viewer
+      viewer = new Viewer({
+        rootElement: host,
+        sharedMemoryForWorkers: false, // 某些环境更稳
+        // 你想更“作品展示感”也可以改这些参数，但先默认最稳
+      });
+
+      // 加载 PLY（3DGS）
+      // 注意：不同数据会有不同的尺度，你后续可以在 Supersplat 精修里做统一尺度
+      await viewer.addSplatScene(url, {
+        // 这几个是常用参数，先保守设置
+        progressiveLoad: true,
+        // 这里不硬设 scale/rotation，避免把你的作品“转飞”
+      });
+
+      viewer.start();
+      setStatus(`已加载：${w.file}（可拖拽旋转/滚轮缩放）`);
+    }
+
+    function getWorkFromQuery() {
+      const sp = new URLSearchParams(location.search);
+      return sp.get("work") || WORKS[0].id;
+    }
+
+    // 初次加载
+    await loadWorkById(getWorkFromQuery());
+
+    // 浏览器前进后退/点击列表时重新加载
+    window.addEventListener("popstate", async () => {
+      await loadWorkById(getWorkFromQuery());
+    });
+
+    // 点击左侧列表不刷新整页
+    listEl.addEventListener("click", async (e) => {
+      const a = e.target.closest("a.item");
+      if (!a) return;
+      e.preventDefault();
+      history.pushState({}, "", a.getAttribute("href"));
+      await loadWorkById(getWorkFromQuery());
+    });
+
+    // 复制当前作品链接
+    copyLinkBtn.addEventListener("click", async () => {
+      const url = new URL(location.href);
+      url.searchParams.set("work", currentWork?.id || WORKS[0].id);
+      await navigator.clipboard.writeText(url.toString());
+      setStatus("已复制当前作品链接 ✅");
+      setTimeout(() => setStatus(`已加载：${currentWork.file}`), 1200);
     });
   </script>
 </body>
