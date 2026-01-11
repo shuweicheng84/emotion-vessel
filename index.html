@@ -1,0 +1,890 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>情绪容器 · Emotion Vessel</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* 展览风：更克制的选中态、更慢的动效 */
+    :root { color-scheme: dark; }
+    .fade-in { animation: fadeIn 450ms ease-out both; }
+    @keyframes fadeIn { from {opacity:0; transform: translateY(6px);} to {opacity:1; transform: translateY(0);} }
+
+    /* “容器”视觉（纯CSS，MVP不依赖3D建模） */
+    .vessel {
+      position: relative;
+      width: min(900px, 92vw);
+      height: min(520px, 62vh);
+      border-radius: 24px;
+      overflow: hidden;
+      user-select: none;
+      touch-action: none;
+    }
+    .vessel::after{
+      content:"";
+      position:absolute; inset:0;
+      background: radial-gradient(1200px 600px at 60% 20%, rgba(255,255,255,.07), transparent 60%),
+                  radial-gradient(900px 500px at 20% 80%, rgba(255,255,255,.05), transparent 55%);
+      pointer-events:none;
+      mix-blend-mode: screen;
+    }
+
+    /* 玻璃鱼缸 */
+    .tank{
+      background:
+        linear-gradient(135deg, rgba(255,255,255,.06), rgba(255,255,255,.02)),
+        radial-gradient(900px 600px at 50% 0%, rgba(120,180,255,.18), transparent 65%),
+        radial-gradient(900px 700px at 50% 100%, rgba(80,160,180,.12), transparent 70%),
+        #07090f;
+      border: 1px solid rgba(255,255,255,.12);
+      box-shadow: 0 0 0 1px rgba(255,255,255,.04) inset, 0 24px 80px rgba(0,0,0,.55);
+    }
+    .tank .rim{
+      position:absolute; inset:14px;
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,.08);
+      background: linear-gradient(180deg, rgba(255,255,255,.04), transparent 30%);
+      pointer-events:none;
+    }
+    .tank .glass-line{
+      position:absolute; inset:0;
+      background: linear-gradient(110deg, transparent 0%, rgba(255,255,255,.07) 40%, transparent 70%);
+      transform: translateX(-40%);
+      animation: shimmer 7s linear infinite;
+      opacity:.35;
+      pointer-events:none;
+    }
+    @keyframes shimmer { 0%{transform:translateX(-40%);} 100%{transform:translateX(40%);} }
+
+    /* 火柴盒 */
+    .matchbox{
+      background:
+        radial-gradient(900px 600px at 50% 40%, rgba(255,220,180,.10), transparent 60%),
+        linear-gradient(180deg, rgba(255,255,255,.05), rgba(0,0,0,.25)),
+        #080708;
+      border: 1px solid rgba(255,255,255,.10);
+      box-shadow: 0 0 0 1px rgba(255,255,255,.04) inset, 0 28px 90px rgba(0,0,0,.62);
+    }
+    .matchbox .inner{
+      position:absolute; inset:34px 54px 34px 54px;
+      border-radius: 18px;
+      border: 1px dashed rgba(255,255,255,.10);
+      background: linear-gradient(135deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
+      pointer-events:none;
+    }
+    .matchbox .label{
+      position:absolute; left:20px; bottom:18px;
+      font-size: 12px; letter-spacing: .14em;
+      color: rgba(255,255,255,.55);
+      text-transform: uppercase;
+      opacity:.85;
+    }
+
+    /* 木质抽屉 */
+    .drawer{
+      background:
+        radial-gradient(900px 600px at 50% 20%, rgba(220,190,140,.12), transparent 55%),
+        linear-gradient(180deg, rgba(255,255,255,.04), rgba(0,0,0,.32)),
+        #070606;
+      border: 1px solid rgba(255,255,255,.10);
+      box-shadow: 0 0 0 1px rgba(255,255,255,.04) inset, 0 28px 90px rgba(0,0,0,.62);
+    }
+    .drawer .grain{
+      position:absolute; inset:0;
+      background-image:
+        repeating-linear-gradient(90deg, rgba(255,255,255,.03) 0, rgba(255,255,255,.03) 1px, transparent 1px, transparent 26px),
+        repeating-linear-gradient(0deg, rgba(255,255,255,.02) 0, rgba(255,255,255,.02) 1px, transparent 1px, transparent 18px);
+      opacity:.25;
+      pointer-events:none;
+    }
+    .drawer .handle{
+      position:absolute; left:50%; top:18px; transform:translateX(-50%);
+      width: 160px; height: 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.12);
+      box-shadow: 0 0 0 1px rgba(255,255,255,.05) inset;
+      pointer-events:none;
+    }
+
+    /* 可拖拽锚点 */
+    .anchor{
+      position:absolute;
+      left: 50%; top: 55%;
+      transform: translate(-50%,-50%) scale(1);
+      width: 240px; height: 240px;
+      border-radius: 18px;
+      overflow:hidden;
+      box-shadow: 0 0 0 1px rgba(255,255,255,.08) inset, 0 28px 80px rgba(0,0,0,.55);
+      cursor: grab;
+    }
+    .anchor:active{ cursor: grabbing; }
+    .anchor img{
+      width:100%; height:100%; object-fit: cover;
+      filter: contrast(1.03) saturate(1.06);
+      opacity:.92;
+    }
+    .anchor .caption{
+      position:absolute; left:0; right:0; bottom:0;
+      padding: 10px 12px;
+      font-size: 12px;
+      color: rgba(255,255,255,.78);
+      background: linear-gradient(180deg, transparent, rgba(0,0,0,.55));
+    }
+
+    /* 情绪盘（简化版：点击选择点） */
+    .affect-pad{
+      position:relative;
+      width: 220px; height: 220px;
+      border-radius: 999px;
+      background:
+        radial-gradient(circle at 50% 50%, rgba(255,255,255,.08), rgba(255,255,255,.02) 55%, rgba(0,0,0,.0) 62%),
+        conic-gradient(from 0deg, rgba(120,180,255,.18), rgba(255,180,140,.16), rgba(200,140,255,.14), rgba(120,180,255,.18));
+      border: 1px solid rgba(255,255,255,.10);
+      box-shadow: 0 0 0 1px rgba(255,255,255,.04) inset;
+      overflow:hidden;
+    }
+    .affect-pad::after{
+      content:"";
+      position:absolute; inset:12px;
+      border-radius: 999px;
+      border: 1px dashed rgba(255,255,255,.12);
+      opacity:.6;
+    }
+    .affect-dot{
+      position:absolute;
+      width: 10px; height: 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.92);
+      box-shadow: 0 0 0 6px rgba(255,255,255,.12);
+      transform: translate(-50%,-50%);
+      pointer-events:none;
+    }
+
+    /* 轻微的“展牌”样式 */
+    .plaque{
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.03);
+      box-shadow: 0 0 0 1px rgba(255,255,255,.03) inset;
+      border-radius: 18px;
+    }
+  </style>
+</head>
+
+<body class="min-h-screen bg-[#05060a] text-white">
+  <div class="absolute inset-0 pointer-events-none">
+    <div class="absolute -top-40 -left-40 w-[620px] h-[620px] rounded-full blur-3xl opacity-30 bg-white"></div>
+    <div class="absolute top-[20%] -right-40 w-[560px] h-[560px] rounded-full blur-3xl opacity-20 bg-white"></div>
+  </div>
+
+  <header class="relative z-10 max-w-6xl mx-auto px-6 pt-8 pb-4">
+    <div class="flex items-center justify-between">
+      <div class="text-sm tracking-[.28em] uppercase text-white/60">Emotion Vessel</div>
+      <nav class="text-sm text-white/60 space-x-5">
+        <a href="#/" class="hover:text-white/90">入口</a>
+        <a href="#/studio" class="hover:text-white/90">制作</a>
+        <a href="#/work" class="hover:text-white/90">作品</a>
+      </nav>
+   zer
+    </div>
+  </header>
+
+  <main id="app" class="relative z-10 max-w-6xl mx-auto px-6 pb-16"></main>
+
+  <script>
+    // -------------------------
+    // State + helpers
+    // -------------------------
+    const state = {
+      step: "home",
+      title: "",
+      note: "",
+      imgDataUrl: "",
+      affect: { x: 0.55, y: 0.55 }, // 0..1
+      vessel: "tank", // tank | matchbox | drawer
+      placement: { x: 0.5, y: 0.55, scale: 1.0 },
+      createdAt: new Date().toISOString().slice(0,10),
+      ai: { suggestion: "", accepted: false },
+      log: [],
+    };
+
+    const $ = (sel) => document.querySelector(sel);
+
+    function clamp(v, min, max){ return Math.max(min, Math.min(max, v)); }
+
+    function encodeState(){
+      const payload = {
+        t: state.title,
+        n: state.note,
+        i: state.imgDataUrl,
+        a: state.affect,
+        v: state.vessel,
+        p: state.placement,
+        d: state.createdAt,
+        s: state.ai,
+      };
+      const json = JSON.stringify(payload);
+      return btoa(unescape(encodeURIComponent(json)));
+    }
+
+    function decodeState(b64){
+      try{
+        const json = decodeURIComponent(escape(atob(b64)));
+        return JSON.parse(json);
+      }catch(e){ return null; }
+    }
+
+    function vesselMeta(key){
+      const map = {
+        tank: {
+          name: "玻璃鱼缸",
+          en: "Glass Tank",
+          desc: "透明、可被观看，却依然封闭。适合那些你并不回避，但也不急于触碰的情绪。",
+        },
+        matchbox: {
+          name: "火柴盒",
+          en: "Matchbox",
+          desc: "很小，很近，只容纳一个瞬间。适合短暂却强烈的情绪：不想放大，也不想遗忘。",
+        },
+        drawer: {
+          name: "木质抽屉",
+          en: "Wooden Drawer",
+          desc: "被收纳的、层叠的、尚未整理的。适合复杂、混合、还没准备好被完全打开的情绪。",
+        }
+      };
+      return map[key];
+    }
+
+    function aiSuggest(){
+      // Very gentle mapping from affect coords to exhibit parameters
+      // Valence: x (0..1) ; Arousal: y (0..1)
+      const v = state.affect.x;
+      const a = state.affect.y;
+
+      const warmth = v >= 0.5 ? "稍微暖一些" : "稍微冷一些";
+      const light = v >= 0.5 ? "更明亮一点" : "更克制一点";
+      const motion = a >= 0.5 ? "让它有一点微动" : "让它更安静地停留";
+      const distance = a >= 0.5 ? "视角可以更近" : "保持一点距离也很好";
+
+      return `如果你愿意，这段情绪也许适合：${warmth}、${light}，并且${motion}；${distance}。当然，这只是一个提议。`;
+    }
+
+    function pushLog(line){
+      state.log.push({ t: new Date().toLocaleString(), line });
+    }
+
+    // -------------------------
+    // Views
+    // -------------------------
+    function HomeView(){
+      return `
+        <section class="fade-in pt-10 pb-16">
+          <div class="max-w-3xl">
+            <h1 class="text-4xl sm:text-5xl font-light leading-tight">
+              情绪容器 · <span class="text-white/70">Emotion Vessel</span>
+            </h1>
+            <p class="mt-6 text-lg text-white/80 leading-relaxed">
+              有些情绪不需要被分析，<br/>
+              只需要一个地方，安静地存在。
+            </p>
+
+            <div class="mt-10 plaque p-6">
+              <p class="text-white/80 leading-relaxed">
+                我们习惯让算法理解情绪、判断情绪、回应情绪。<br/>
+                但在这里，AI不试图解释你。<br/>
+                它只协助你，为一段情绪选择一个容器——一个透明的、狭小的、或被时间包裹的空间。<br/>
+                你放置的不是数据，而是一段仍在发酵的经验。
+              </p>
+              <div class="mt-6 flex flex-wrap gap-3">
+                <a href="#/studio" class="px-5 py-3 rounded-2xl bg-white text-black text-sm tracking-wide hover:opacity-90">
+                  开始安放一段情绪
+                </a>
+                <a href="#/work" class="px-5 py-3 rounded-2xl border border-white/15 text-white/80 text-sm tracking-wide hover:text-white">
+                  查看作品页示例
+                </a>
+              </div>
+              <p class="mt-6 text-xs text-white/55 leading-relaxed">
+                本项目为实验性数字情绪装置。它不提供诊断，也不试图给出答案。
+              </p>
+            </div>
+          </div>
+        </section>
+      `;
+    }
+
+    function StudioView(){
+      const meta = vesselMeta(state.vessel);
+      const suggestion = aiSuggest();
+      state.ai.suggestion = suggestion;
+
+      return `
+        <section class="fade-in pt-8 pb-10">
+          <div class="grid lg:grid-cols-12 gap-6 items-start">
+            <!-- Left: Steps -->
+            <div class="lg:col-span-7 space-y-6">
+              <div class="plaque p-6">
+                <div class="text-xs tracking-[.28em] uppercase text-white/55">Step 1</div>
+                <h2 class="mt-2 text-2xl font-light">这是一段从哪里开始的记忆？</h2>
+                <p class="mt-3 text-white/70 leading-relaxed">
+                  上传一张图片。它不需要完整，也不需要清晰。它只是你愿意交给这个空间的一个入口。
+                </p>
+
+                <div class="mt-5 grid sm:grid-cols-2 gap-4">
+                  <label class="plaque p-4 cursor-pointer hover:bg-white/5 transition">
+                    <div class="text-sm text-white/80">上传图片锚点</div>
+                    <div class="mt-1 text-xs text-white/55">（MVP 用图片模拟高斯放置）</div>
+                    <input id="imgInput" type="file" accept="image/*" class="hidden" />
+                    <div class="mt-3 text-xs text-white/50">点击此卡片选择文件</div>
+                  </label>
+
+                  <div class="plaque p-4">
+                    <div class="text-sm text-white/80">预览</div>
+                    <div class="mt-3 w-full aspect-square rounded-xl overflow-hidden bg-white/5 border border-white/10 flex items-center justify-center">
+                      ${state.imgDataUrl ? `<img src="${state.imgDataUrl}" class="w-full h-full object-cover opacity-90" />` : `<div class="text-xs text-white/45">尚未上传</div>`}
+                    </div>
+                  </div>
+                </div>
+
+                <div class="mt-5 grid sm:grid-cols-2 gap-4">
+                  <div>
+                    <div class="text-xs tracking-[.18em] uppercase text-white/55">可选标记</div>
+                    <input id="noteInput" value="${escapeHtml(state.note)}" placeholder="用一句话标记它（不是解释）"
+                      class="mt-2 w-full px-4 py-3 rounded-2xl bg-white/5 border border-white/10 text-white/90 placeholder:text-white/35 focus:outline-none focus:ring-2 focus:ring-white/15"/>
+                  </div>
+                  <div>
+                    <div class="text-xs tracking-[.18em] uppercase text-white/55">作品标题</div>
+                    <input id="titleInput" value="${escapeHtml(state.title)}" placeholder="你也可以不命名"
+                      class="mt-2 w-full px-4 py-3 rounded-2xl bg-white/5 border border-white/10 text-white/90 placeholder:text-white/35 focus:outline-none focus:ring-2 focus:ring-white/15"/>
+                  </div>
+                </div>
+              </div>
+
+              <div class="plaque p-6">
+                <div class="text-xs tracking-[.28em] uppercase text-white/55">Step 2</div>
+                <h2 class="mt-2 text-2xl font-light">此刻，它更接近哪种状态？</h2>
+                <p class="mt-3 text-white/70 leading-relaxed">
+                  情绪并不总是一个词。有时，它更像一个位置。你不需要精确。
+                </p>
+
+                <div class="mt-5 flex flex-col sm:flex-row gap-6 items-start">
+                  <div>
+                    <div id="affectPad" class="affect-pad">
+                      <div id="affectDot" class="affect-dot" style="left:${state.affect.x*100}%; top:${state.affect.y*100}%"></div>
+                    </div>
+                    <div class="mt-3 text-xs text-white/55 leading-relaxed">
+                      横轴：接近 ↔ 远离<br/>
+                      纵轴：平静 ↔ 激活
+                    </div>
+                  </div>
+
+                  <div class="flex-1">
+                    <div class="text-xs tracking-[.18em] uppercase text-white/55">AI 旁白（弱提示）</div>
+                    <div class="mt-2 plaque p-4 text-white/75 leading-relaxed">
+                      ${escapeHtml(suggestion)}
+                    </div>
+                    <div class="mt-3 flex gap-3">
+                      <button id="acceptSuggest" class="px-4 py-2 rounded-2xl bg-white text-black text-sm hover:opacity-90">
+                        接受建议
+                      </button>
+                      <button id="rejectSuggest" class="px-4 py-2 rounded-2xl border border-white/15 text-white/80 text-sm hover:text-white">
+                        我自己调整
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="plaque p-6">
+                <div class="text-xs tracking-[.28em] uppercase text-white/55">Step 3</div>
+                <h2 class="mt-2 text-2xl font-light">为它选择一个容器</h2>
+                <p class="mt-3 text-white/70 leading-relaxed">
+                  不同的情绪，适合被放置在不同的空间里。这不是风格选择，而是一种安放方式。
+                </p>
+
+                <div class="mt-5 grid sm:grid-cols-3 gap-4">
+                  ${VesselCard("tank")}
+                  ${VesselCard("matchbox")}
+                  ${VesselCard("drawer")}
+                </div>
+
+                <div class="mt-5 plaque p-4">
+                  <div class="text-sm text-white/85">${meta.name} · <span class="text-white/55">${meta.en}</span></div>
+                  <div class="mt-2 text-white/70 text-sm leading-relaxed">${escapeHtml(meta.desc)}</div>
+                </div>
+
+                <div class="mt-6 flex flex-wrap gap-3">
+                  <a href="#/place" class="px-5 py-3 rounded-2xl bg-white text-black text-sm tracking-wide hover:opacity-90">
+                    进入安放空间
+                  </a>
+                  <button id="resetAll" class="px-5 py-3 rounded-2xl border border-white/15 text-white/80 text-sm tracking-wide hover:text-white">
+                    清空并重新开始
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right: Curator Notes -->
+            <aside class="lg:col-span-5 space-y-6">
+              <div class="plaque p-6">
+                <div class="text-xs tracking-[.28em] uppercase text-white/55">Curatorial Note</div>
+                <h3 class="mt-2 text-xl font-light">这里不解释你</h3>
+                <p class="mt-3 text-white/70 leading-relaxed">
+                  AI 在此不负责判断对错，也不负责诊断。<br/>
+                  它只提供一种脚手架：把情绪从“标签”变成“可编辑的空间经验”。
+                </p>
+              </div>
+
+              <div class="plaque p-6">
+                <div class="text-xs tracking-[.28em] uppercase text-white/55">Process</div>
+                <ol class="mt-3 text-white/75 text-sm leading-relaxed list-decimal list-inside space-y-2">
+                  <li>上传一张记忆锚点</li>
+                  <li>选择一个情绪位置</li>
+                  <li>选择一个容器</li>
+                  <li>进入空间，完成安放</li>
+                  <li>生成作品页与协作日志</li>
+                </ol>
+              </div>
+
+              <div class="plaque p-6">
+                <div class="text-xs tracking-[.28em] uppercase text-white/55">A Path (External)</div>
+                <div class="mt-2 text-white/80 text-sm leading-relaxed">
+                  你后续接“单图转高斯（PLY）”时，可以把这一步放在外部生成器完成，再回到这里回收结果。
+                </div>
+              </div>
+            </aside>
+          </div>
+        </section>
+      `;
+    }
+
+    function PlacementView(){
+      const meta = vesselMeta(state.vessel);
+      const hasImg = !!state.imgDataUrl;
+
+      return `
+        <section class="fade-in pt-8 pb-12">
+          <div class="flex flex-col lg:flex-row gap-6 items-start">
+            <div class="flex-1">
+              <div class="flex items-end justify-between gap-4 mb-4">
+                <div>
+                  <div class="text-xs tracking-[.28em] uppercase text-white/55">Installation Room</div>
+                  <h2 class="mt-2 text-3xl font-light">现在，把它放进去</h2>
+                  <p class="mt-2 text-white/70">${meta.name} · <span class="text-white/50">${meta.en}</span></p>
+                </div>
+                <div class="flex gap-2">
+                  <a href="#/studio" class="px-4 py-2 rounded-2xl border border-white/15 text-white/80 text-sm hover:text-white">返回编辑</a>
+                  <button id="publish" class="px-4 py-2 rounded-2xl bg-white text-black text-sm hover:opacity-90">生成作品页</button>
+                </div>
+              </div>
+
+              <div id="vesselStage" class="vessel ${state.vessel}">
+                ${VesselDecor(state.vessel)}
+                ${hasImg ? AnchorMarkup() : `
+                  <div class="absolute inset-0 flex items-center justify-center">
+                    <div class="plaque p-5 text-sm text-white/70">
+                      还没有上传记忆锚点。<a class="underline text-white" href="#/studio">回到编辑器</a>
+                    </div>
+                  </div>
+                `}
+              </div>
+
+              <div class="mt-4 flex flex-wrap gap-3 text-xs text-white/55">
+                <span class="plaque px-3 py-2">拖拽：移动</span>
+                <span class="plaque px-3 py-2">滚轮/双指：缩放</span>
+                <span class="plaque px-3 py-2">停留：让它慢慢显现</span>
+              </div>
+            </div>
+
+            <aside class="w-full lg:w-[360px] space-y-6">
+              <div class="plaque p-6">
+                <div class="text-xs tracking-[.28em] uppercase text-white/55">Placement</div>
+                <p class="mt-3 text-white/70 leading-relaxed">
+                  你不需要让它“好看”，只需要让它<strong class="text-white/85 font-medium">待得下去</strong>。
+                </p>
+
+                <div class="mt-5 space-y-3">
+                  <label class="text-xs text-white/55">缩放</label>
+                  <input id="scaleRange" type="range" min="0.5" max="1.6" step="0.01" value="${state.placement.scale}"
+                    class="w-full"/>
+                  <div class="flex gap-3">
+                    <button id="centerAnchor" class="px-4 py-2 rounded-2xl border border-white/15 text-white/80 text-sm hover:text-white">
+                      置中
+                    </button>
+                    <button id="softReset" class="px-4 py-2 rounded-2xl border border-white/15 text-white/80 text-sm hover:text-white">
+                      轻微重置
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="plaque p-6">
+                <div class="text-xs tracking-[.28em] uppercase text-white/55">AI 旁白（记录）</div>
+                <div class="mt-3 text-white/75 leading-relaxed text-sm">
+                  ${escapeHtml(state.ai.suggestion || aiSuggest())}
+                </div>
+                <div class="mt-3 text-xs text-white/55">
+                  ${state.ai.accepted ? "你选择保留了部分建议。" : "你选择自行调整。"}
+                </div>
+              </div>
+
+              <div class="plaque p-6">
+                <div class="text-xs tracking-[.28em] uppercase text-white/55">Ethics</div>
+                <p class="mt-3 text-white/70 text-sm leading-relaxed">
+                  这不是心理诊断工具，也不提供干预建议。<br/>
+                  它只是一个空间。
+                </p>
+              </div>
+            </aside>
+          </div>
+        </section>
+      `;
+    }
+
+    function WorkView(){
+      // If URL has ?s=..., restore
+      const url = new URL(location.href);
+      const s = url.searchParams.get("s");
+      if(s){
+        const decoded = decodeState(s);
+        if(decoded){
+          state.title = decoded.t || state.title;
+          state.note = decoded.n || state.note;
+          state.imgDataUrl = decoded.i || state.imgDataUrl;
+          state.affect = decoded.a || state.affect;
+          state.vessel = decoded.v || state.vessel;
+          state.placement = decoded.p || state.placement;
+          state.createdAt = decoded.d || state.createdAt;
+          state.ai = decoded.s || state.ai;
+        }
+      }
+
+      const meta = vesselMeta(state.vessel);
+      const title = state.title?.trim() ? state.title.trim() : "《未命名的容器》";
+      const affectText = `(${(state.affect.x*100).toFixed(0)}%, ${(state.affect.y*100).toFixed(0)}%)`;
+
+      const shareUrl = `${location.origin}${location.pathname}#/work?s=${encodeState()}`;
+
+      return `
+        <section class="fade-in pt-8 pb-14">
+          <div class="grid lg:grid-cols-12 gap-6 items-start">
+            <div class="lg:col-span-7">
+              <div class="text-xs tracking-[.28em] uppercase text-white/55">Exhibited Work</div>
+              <h1 class="mt-2 text-4xl font-light leading-tight">${escapeHtml(title)}</h1>
+
+              <div class="mt-4 flex flex-wrap gap-3 text-xs text-white/55">
+                <span class="plaque px-3 py-2">情绪位置：已记录 ${escapeHtml(affectText)}</span>
+                <span class="plaque px-3 py-2">容器类型：${meta.name}</span>
+                <span class="plaque px-3 py-2">创建时间：${escapeHtml(state.createdAt)}</span>
+              </div>
+
+              <div class="mt-6 plaque p-6 text-white/80 leading-relaxed">
+                这是一段被暂时安放的情绪。<br/>
+                它没有被解释，也没有被解决。<br/>
+                它只是被允许，在这里存在。
+              </div>
+
+              <div class="mt-6">
+                <div class="vessel ${state.vessel}">
+                  ${VesselDecor(state.vessel)}
+                  ${state.imgDataUrl ? AnchorMarkup(true) : `
+                    <div class="absolute inset-0 flex items-center justify-center">
+                      <div class="text-xs text-white/45">（暂无锚点）</div>
+                    </div>
+                  `}
+                </div>
+              </div>
+
+              <div class="mt-6 flex flex-wrap gap-3">
+                <a href="#/studio" class="px-5 py-3 rounded-2xl border border-white/15 text-white/80 text-sm hover:text-white">
+                  再做一个容器
+                </a>
+                <button id="copyLink" class="px-5 py-3 rounded-2xl bg-white text-black text-sm hover:opacity-90">
+                  复制分享链接
+                </button>
+              </div>
+              <div class="mt-3 text-xs text-white/45 break-all">
+                ${escapeHtml(shareUrl)}
+              </div>
+            </div>
+
+            <aside class="lg:col-span-5 space-y-6">
+              <div class="plaque p-6">
+                <div class="text-xs tracking-[.28em] uppercase text-white/55">制作过程</div>
+                <ul class="mt-3 text-white/75 text-sm leading-relaxed list-disc list-inside space-y-2">
+                  <li>我上传了一张与这段记忆有关的图片锚点</li>
+                  <li>我为它选择了一个情绪位置</li>
+                  <li>AI 提出了空间与光线的建议</li>
+                  <li>我保留 / 修改 / 拒绝了其中的一部分</li>
+                </ul>
+                <div class="mt-4 text-xs text-white/55">
+                  这是一次协作，而不是自动生成。
+                </div>
+              </div>
+
+              <div class="plaque p-6">
+                <div class="text-xs tracking-[.28em] uppercase text-white/55">你的标记</div>
+                <div class="mt-3 text-white/80 leading-relaxed">
+                  ${state.note?.trim() ? escapeHtml(state.note.trim()) : `<span class="text-white/45">（你没有留下文字标记）</span>`}
+                </div>
+              </div>
+
+              <div class="plaque p-6">
+                <div class="text-xs tracking-[.28em] uppercase text-white/55">伦理声明</div>
+                <p class="mt-3 text-white/70 text-sm leading-relaxed">
+                  Emotion Vessel 不判断情绪的正确与否。<br/>
+                  它不是心理诊断工具，也不提供干预建议。<br/>
+                  它只是一个空间。
+                </p>
+              </div>
+            </aside>
+          </div>
+        </section>
+      `;
+    }
+
+    // -------------------------
+    // Markup builders
+    // -------------------------
+    function VesselCard(key){
+      const meta = vesselMeta(key);
+      const active = state.vessel === key;
+      return `
+        <button data-vessel="${key}"
+          class="text-left plaque p-4 hover:bg-white/5 transition ${active ? 'ring-2 ring-white/20' : ''}">
+          <div class="text-sm text-white/85">${meta.name}</div>
+          <div class="text-xs text-white/50 mt-1">${meta.en}</div>
+          <div class="text-xs text-white/65 mt-3 leading-relaxed">${escapeHtml(meta.desc)}</div>
+        </button>
+      `;
+    }
+
+    function VesselDecor(key){
+      if(key === "tank"){
+        return `<div class="rim"></div><div class="glass-line"></div>`;
+      }
+      if(key === "matchbox"){
+        return `<div class="inner"></div><div class="label">matchbox</div>`;
+      }
+      if(key === "drawer"){
+        return `<div class="grain"></div><div class="handle"></div>`;
+      }
+      return "";
+    }
+
+    function AnchorMarkup(isStatic=false){
+      const left = state.placement.x * 100;
+      const top = state.placement.y * 100;
+      const scale = state.placement.scale;
+
+      const style = `left:${left}%; top:${top}%; transform: translate(-50%,-50%) scale(${scale}); ${isStatic ? 'cursor:default;' : ''}`;
+      const cap = state.note?.trim() ? state.note.trim() : "一段被暂时安放的记忆";
+      return `
+        <div id="anchor" class="anchor" style="${style}">
+          <img src="${state.imgDataUrl}" alt="anchor"/>
+          <div class="caption">${escapeHtml(cap)}</div>
+        </div>
+      `;
+    }
+
+    function escapeHtml(str){
+      return (str || "")
+        .replaceAll("&","&amp;")
+        .replaceAll("<","&lt;")
+        .replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;")
+        .replaceAll("'","&#039;");
+    }
+
+    // -------------------------
+    // Router + bindings
+    // -------------------------
+    function render(){
+      const hash = location.hash || "#/";
+      const app = $("#app");
+
+      if(hash.startsWith("#/studio")){
+        state.step = "studio";
+        app.innerHTML = StudioView();
+        bindStudio();
+        return;
+      }
+      if(hash.startsWith("#/place")){
+        state.step = "place";
+        app.innerHTML = PlacementView();
+        bindPlacement();
+        return;
+      }
+      if(hash.startsWith("#/work")){
+        state.step = "work";
+        app.innerHTML = WorkView();
+        bindWork();
+        return;
+      }
+      state.step = "home";
+      app.innerHTML = HomeView();
+    }
+
+    function bindStudio(){
+      // image upload
+      const input = $("#imgInput");
+      input.addEventListener("change", (e)=>{
+        const file = e.target.files?.[0];
+        if(!file) return;
+        const reader = new FileReader();
+        reader.onload = ()=>{
+          state.imgDataUrl = reader.result;
+          pushLog("上传了记忆锚点图片");
+          render();
+        };
+        reader.readAsDataURL(file);
+      });
+      // clickable label card triggers file input
+      input.parentElement.addEventListener("click", ()=> input.click());
+
+      // note + title
+      $("#noteInput").addEventListener("input",(e)=>{
+        state.note = e.target.value;
+      });
+      $("#titleInput").addEventListener("input",(e)=>{
+        state.title = e.target.value;
+      });
+
+      // affect pad selection
+      const pad = $("#affectPad");
+      pad.addEventListener("pointerdown",(e)=>{
+        const rect = pad.getBoundingClientRect();
+        const x = clamp((e.clientX - rect.left)/rect.width, 0, 1);
+        const y = clamp((e.clientY - rect.top)/rect.height, 0, 1);
+        state.affect = {x,y};
+        pushLog("选择了情绪位置");
+        render(); // rerender to update suggestion + dot
+      });
+
+      // accept/reject suggestion
+      $("#acceptSuggest").addEventListener("click", ()=>{
+        state.ai.accepted = true;
+        pushLog("接受了部分 AI 的空间建议");
+        render();
+      });
+      $("#rejectSuggest").addEventListener("click", ()=>{
+        state.ai.accepted = false;
+        pushLog("选择自行调整空间建议");
+        render();
+      });
+
+      // vessel cards
+      document.querySelectorAll("[data-vessel]").forEach(btn=>{
+        btn.addEventListener("click", ()=>{
+          state.vessel = btn.getAttribute("data-vessel");
+          pushLog(`选择容器：${vesselMeta(state.vessel).name}`);
+          render();
+        });
+      });
+
+      // reset
+      $("#resetAll").addEventListener("click", ()=>{
+        Object.assign(state, {
+          title: "", note: "", imgDataUrl: "",
+          affect: {x:0.55,y:0.55}, vessel:"tank",
+          placement: {x:0.5,y:0.55,scale:1.0},
+          ai: { suggestion: "", accepted:false },
+          log: [],
+          createdAt: new Date().toISOString().slice(0,10),
+        });
+        location.hash = "#/studio";
+        render();
+      });
+    }
+
+    function bindPlacement(){
+      const anchor = $("#anchor");
+      const stage = $("#vesselStage");
+      const scaleRange = $("#scaleRange");
+
+      if(scaleRange){
+        scaleRange.addEventListener("input",(e)=>{
+          state.placement.scale = parseFloat(e.target.value);
+          updateAnchorTransform(anchor);
+        });
+      }
+
+      $("#centerAnchor")?.addEventListener("click", ()=>{
+        state.placement.x = 0.5; state.placement.y = 0.55;
+        updateAnchorTransform(anchor);
+      });
+      $("#softReset")?.addEventListener("click", ()=>{
+        state.placement.scale = 1.0;
+        $("#scaleRange").value = 1.0;
+        updateAnchorTransform(anchor);
+      });
+
+      // drag
+      if(anchor && stage){
+        let dragging = false;
+        let pid = null;
+
+        anchor.addEventListener("pointerdown",(e)=>{
+          dragging = true;
+          pid = e.pointerId;
+          anchor.setPointerCapture(pid);
+        });
+
+        anchor.addEventListener("pointermove",(e)=>{
+          if(!dragging) return;
+          const rect = stage.getBoundingClientRect();
+          const x = clamp((e.clientX - rect.left)/rect.width, 0.05, 0.95);
+          const y = clamp((e.clientY - rect.top)/rect.height, 0.08, 0.95);
+          state.placement.x = x;
+          state.placement.y = y;
+          updateAnchorTransform(anchor);
+        });
+
+        anchor.addEventListener("pointerup",(e)=>{
+          dragging = false;
+          try{ anchor.releasePointerCapture(pid); }catch{}
+        });
+
+        // wheel zoom
+        stage.addEventListener("wheel",(e)=>{
+          e.preventDefault();
+          const delta = Math.sign(e.deltaY);
+          state.placement.scale = clamp(state.placement.scale + (delta>0 ? -0.03 : 0.03), 0.5, 1.6);
+          $("#scaleRange").value = state.placement.scale.toFixed(2);
+          updateAnchorTransform(anchor);
+        }, { passive:false });
+      }
+
+      $("#publish")?.addEventListener("click", ()=>{
+        pushLog("生成了作品页");
+        location.hash = "#/work";
+        // keep state in URL param for sharing
+        const base = `${location.origin}${location.pathname}#/work?s=${encodeState()}`;
+        history.replaceState({}, "", base);
+        render();
+      });
+    }
+
+    function updateAnchorTransform(anchor){
+      if(!anchor) return;
+      anchor.style.left = (state.placement.x*100) + "%";
+      anchor.style.top  = (state.placement.y*100) + "%";
+      anchor.style.transform = `translate(-50%,-50%) scale(${state.placement.scale})`;
+    }
+
+    function bindWork(){
+      $("#copyLink")?.addEventListener("click", async ()=>{
+        const shareUrl = `${location.origin}${location.pathname}#/work?s=${encodeState()}`;
+        try{
+          await navigator.clipboard.writeText(shareUrl);
+          alert("已复制分享链接");
+        }catch(e){
+          prompt("复制这个链接：", shareUrl);
+        }
+      });
+    }
+
+    window.addEventListener("hashchange", render);
+    render();
+  </script>
+</body>
+</html>
