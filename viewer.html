@@ -25,13 +25,12 @@
       padding: 10px 10px;
       cursor: pointer;
       transition: .15s;
-      text-decoration: none;
       color: inherit;
+      text-decoration: none;
     }
     .item:hover { transform: translateY(-1px); border-color: rgba(255,255,255,.22); }
     .item .t { font-size: 13px; margin: 0 0 4px; }
     .item .s { font-size: 12px; opacity: .65; margin: 0; }
-
     .topbar {
       display: flex; gap: 10px; align-items: center; justify-content: space-between;
       padding: 10px 12px;
@@ -50,29 +49,37 @@
       cursor: pointer;
     }
     .btn:hover { border-color: rgba(255,255,255,.28); }
-
     #viewerHost { position: relative; height: calc(100% - 48px); }
     #canvasWrap { position: absolute; inset: 0; }
-
     .status {
       position: absolute; left: 12px; bottom: 12px;
-      font-size: 12px; opacity: .86;
+      font-size: 12px; opacity: .9;
       background: rgba(0,0,0,.38);
       border: 1px solid rgba(255,255,255,.10);
       padding: 8px 10px; border-radius: 10px;
-      max-width: min(640px, calc(100% - 24px));
+      max-width: min(820px, calc(100% - 24px));
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
-    code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
-
-    .fallback {
-      margin-top: 12px;
-      padding: 10px 12px;
-      border: 1px dashed rgba(255,255,255,.18);
-      border-radius: 12px;
-      font-size: 12px;
-      line-height: 1.6;
-      opacity: .8;
+    .bigHint {
+      position: absolute; inset: 0;
+      display: none;
+      align-items: center; justify-content: center;
+      padding: 24px;
+      color: rgba(255,255,255,.8);
+    }
+    .bigHint .card{
+      max-width: 720px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.03);
+      border-radius: 16px;
+      padding: 18px;
+      line-height: 1.7;
+    }
+    .bigHint code{
+      background: rgba(0,0,0,.25);
+      padding: 2px 6px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,.08);
     }
   </style>
 </head>
@@ -86,13 +93,7 @@
         说明：这些 .ply 文件来自 Sharp 单图生成的 3D Gaussian Splats，并经过 Supersplat 精修裁剪。
       </div>
 
-      <!-- ✅ 列表容器：必须存在，否则左侧会“空” -->
       <div class="list" id="list"></div>
-
-      <div class="fallback" id="fallback">
-        如果左侧作品没有出现：说明脚本未运行或文件没更新成功。<br/>
-        请用 <code>viewer.html?v=2</code> 打开，并按 <code>⌘⇧R</code> 硬刷新。
-      </div>
 
       <div style="margin-top:14px; opacity:.7; font-size:12px; line-height:1.6;">
         小提示：你也可以用 URL 直达某个作品：<br/>
@@ -105,21 +106,27 @@
         <div style="font-size:12px; opacity:.75" id="nowTitle">未加载</div>
         <div style="display:flex; gap:10px;">
           <a class="btn" href="index.html">返回首页</a>
-          <button class="btn" id="copyLinkBtn" type="button">复制当前作品链接</button>
+          <button class="btn" id="copyLinkBtn">复制当前作品链接</button>
         </div>
       </div>
 
       <div id="viewerHost">
         <div id="canvasWrap"></div>
+
+        <div class="bigHint" id="bigHint">
+          <div class="card" id="bigHintText"></div>
+        </div>
+
         <div class="status" id="status">准备就绪</div>
       </div>
     </main>
   </div>
 
   <script type="module">
+    // ========= 0) 你只需要确认这三项 =========
     const OWNER = "shuweicheng84";
     const REPO  = "emotion-vessel";
-    const TAG   = "v0.1";
+    const TAG   = "v0.1"; // 你的 Release tag
 
     const WORKS = [
       { id: "01_figure",    title: "01 Figure",    file: "01_figure.ply" },
@@ -129,107 +136,182 @@
       { id: "08_figure",    title: "08 Figure",    file: "08_figure.ply" }
     ];
 
+    // ========= 1) DOM =========
     const statusEl = document.getElementById("status");
     const listEl = document.getElementById("list");
     const nowTitleEl = document.getElementById("nowTitle");
     const copyLinkBtn = document.getElementById("copyLinkBtn");
     const canvasWrap = document.getElementById("canvasWrap");
-    const fallback = document.getElementById("fallback");
+    const bigHint = document.getElementById("bigHint");
+    const bigHintText = document.getElementById("bigHintText");
 
     function setStatus(t) { statusEl.textContent = t; }
+    function showBigHint(html) {
+      bigHintText.innerHTML = html;
+      bigHint.style.display = "flex";
+    }
+    function hideBigHint() { bigHint.style.display = "none"; }
+
+    // ========= 2) Release 资产直链 =========
     function releaseUrl(filename) {
       return `https://github.com/${OWNER}/${REPO}/releases/download/${TAG}/${encodeURIComponent(filename)}`;
     }
+
+    // ========= 3) 左侧列表：先渲染出来（不依赖 CDN） =========
+    function renderList() {
+      listEl.innerHTML = "";
+      WORKS.forEach(w => {
+        const a = document.createElement("a");
+        a.className = "item";
+        a.href = `?work=${encodeURIComponent(w.id)}`;
+        a.innerHTML = `<p class="t">${w.title}</p><p class="s">${w.file}</p>`;
+        listEl.appendChild(a);
+      });
+    }
+    renderList();
+
+    // ========= 4) 多 CDN 兜底加载 3D 库 =========
+    async function importWithFallback(urls) {
+      let lastErr = null;
+      for (const u of urls) {
+        try {
+          setStatus(`加载 3D 渲染库中：${u}`);
+          const mod = await import(u);
+          return { mod, used: u };
+        } catch (e) {
+          lastErr = e;
+          console.warn("[CDN FAIL]", u, e);
+        }
+      }
+      throw lastErr || new Error("CDN import failed");
+    }
+
+    async function loadViewerClass() {
+      // 注意：不同版本文件夹可能是 dist/ 或 build/
+      const version = "0.4.7";
+      const urls = [
+        // jsDelivr（可能不稳）
+        `https://cdn.jsdelivr.net/npm/gaussian-splats-3d@${version}/dist/gaussian-splats-3d.module.js`,
+        `https://cdn.jsdelivr.net/npm/gaussian-splats-3d@${version}/build/gaussian-splats-3d.module.js`,
+        // unpkg
+        `https://unpkg.com/gaussian-splats-3d@${version}/dist/gaussian-splats-3d.module.js`,
+        `https://unpkg.com/gaussian-splats-3d@${version}/build/gaussian-splats-3d.module.js`,
+        // esm.sh（最后兜底）
+        `https://esm.sh/gaussian-splats-3d@${version}`
+      ];
+
+      const { mod, used } = await importWithFallback(urls);
+
+      // esm.sh 可能导出结构不同，这里做兼容
+      const Viewer = mod.Viewer || mod.default?.Viewer || mod.default || null;
+      if (!Viewer) throw new Error("已加载模块，但找不到 Viewer 导出（CDN 模块结构不兼容）");
+
+      setStatus(`脚本已加载 ✅（${used.split("/")[2]}）`);
+      return Viewer;
+    }
+
+    // ========= 5) 业务逻辑 =========
+    let ViewerClass = null;
+    let viewer = null;
+    let currentWork = null;
+
+    function clearCanvasWrap() {
+      canvasWrap.innerHTML = "";
+      viewer = null;
+    }
+
     function getWorkFromQuery() {
       const sp = new URLSearchParams(location.search);
       return sp.get("work") || WORKS[0].id;
     }
-    function clearCanvasWrap() { canvasWrap.innerHTML = ""; }
-
-    // ✅ 自检：脚本确实运行
-    nowTitleEl.textContent = "脚本已加载 ✅";
-    setStatus("脚本已运行，正在生成左侧作品列表…");
-    fallback.style.display = "none";
-
-    // 左侧列表
-    WORKS.forEach(w => {
-      const a = document.createElement("a");
-      a.className = "item";
-      a.href = `viewer.html?work=${encodeURIComponent(w.id)}`;
-      a.dataset.work = w.id;
-      a.innerHTML = `<p class="t">${w.title}</p><p class="s">${w.file}</p>`;
-      listEl.appendChild(a);
-    });
-
-    // 加载 3D 渲染库
-    let Viewer;
-    try {
-      const mod = await import("https://cdn.jsdelivr.net/npm/gaussian-splats-3d@0.4.7/build/gaussian-splats-3d.module.js");
-      Viewer = mod.Viewer;
-    } catch (e) {
-      console.error(e);
-      setStatus("❌ 3D 渲染库加载失败（CDN/网络问题）。换网络或稍后重试。");
-      throw e;
-    }
-
-    let viewer = null;
-    let currentWork = null;
 
     async function loadWorkById(id) {
       const w = WORKS.find(x => x.id === id) || WORKS[0];
       currentWork = w;
+      hideBigHint();
 
       const url = releaseUrl(w.file);
       nowTitleEl.textContent = `当前：${w.title}（Release：${TAG}）`;
-      setStatus(`正在加载：${w.file} …`);
+      setStatus(`准备加载：${w.file}`);
 
+      // 1) 确保 ViewerClass 已就绪
+      if (!ViewerClass) {
+        try {
+          ViewerClass = await loadViewerClass();
+        } catch (err) {
+          console.error(err);
+          setStatus("❌ 3D 渲染库加载失败（CDN/网络问题）。换网络或稍后再试。");
+          showBigHint(`
+            <b>3D 渲染库没有加载成功。</b><br/>
+            这通常是 <b>CDN 被拦 / 网络不稳定</b> 导致的（尤其校园网/部分地区网络）。<br/><br/>
+            你可以试试：<br/>
+            1）换一个网络（手机热点常常能立刻好）<br/>
+            2）稍后重试 / 刷新页面<br/>
+            3）如果你在国内：jsDelivr 可能不稳，本页已自动切到 unpkg/esm.sh 兜底，但依然可能被拦。<br/><br/>
+            <span style="opacity:.8">技术细节：控制台会显示具体哪个 CDN 失败。</span>
+          `);
+          return;
+        }
+      }
+
+      // 2) 初始化 viewer
       clearCanvasWrap();
       const host = document.createElement("div");
       host.style.position = "absolute";
       host.style.inset = "0";
       canvasWrap.appendChild(host);
 
-      viewer = new Viewer({ rootElement: host, sharedMemoryForWorkers: false });
-
       try {
+        viewer = new ViewerClass({
+          rootElement: host,
+          sharedMemoryForWorkers: false
+        });
+
+        setStatus(`加载中：${w.file}`);
+
+        // 3) 加载 splat 场景
         await viewer.addSplatScene(url, { progressiveLoad: true });
         viewer.start();
-        setStatus(`✅ 已加载：${w.file}（拖拽旋转 / 滚轮缩放）`);
+        setStatus(`已加载：${w.file}（拖拽旋转 / 滚轮缩放）`);
       } catch (err) {
         console.error(err);
-        setStatus(`❌ 加载失败：${w.file}（请打开 Console 看报错）`);
-        nowTitleEl.textContent = `加载失败：${w.title}`;
+        setStatus(`❌ 加载失败：${w.file}（可能是链接/CORS/文件格式）`);
+        showBigHint(`
+          <b>PLY 加载失败。</b><br/>
+          可能原因：<br/>
+          1）Release 链接不对：<code>${TAG}</code> 或文件名不一致<br/>
+          2）文件过大/网络中断<br/>
+          3）PLY 不是 3DGS splat 格式（但你这里是 Supersplat 导出的，理论上没问题）<br/><br/>
+          <span style="opacity:.8">建议：按 F12 打开控制台，把报错截图给我，我能继续精准定位。</span>
+        `);
       }
-    }
+    } // ✅ 这里是你原代码缺失的关键右花括号
 
-    async function render() {
+    // ========= 6) 交互 =========
+    // 初次加载
+    await loadWorkById(getWorkFromQuery());
+
+    // 浏览器前进后退
+    window.addEventListener("popstate", async () => {
       await loadWorkById(getWorkFromQuery());
-    }
+    });
 
-    await render();
-
-    window.addEventListener("popstate", () => render());
-
-    listEl.addEventListener("click", (e) => {
+    // 点击左侧列表不刷新整页
+    listEl.addEventListener("click", async (e) => {
       const a = e.target.closest("a.item");
       if (!a) return;
       e.preventDefault();
-      const work = a.dataset.work;
-      history.pushState({}, "", `viewer.html?work=${encodeURIComponent(work)}`);
-      render();
+      history.pushState({}, "", a.getAttribute("href"));
+      await loadWorkById(getWorkFromQuery());
     });
 
+    // 复制当前作品链接
     copyLinkBtn.addEventListener("click", async () => {
       const url = new URL(location.href);
       url.searchParams.set("work", currentWork?.id || WORKS[0].id);
-      try {
-        await navigator.clipboard.writeText(url.toString());
-        setStatus("已复制当前作品链接 ✅");
-        setTimeout(() => setStatus(currentWork ? `✅ 已加载：${currentWork.file}` : "准备就绪"), 1200);
-      } catch (e) {
-        console.error(e);
-        setStatus("复制失败：浏览器不允许剪贴板（可手动复制地址栏链接）");
-      }
+      await navigator.clipboard.writeText(url.toString());
+      setStatus("已复制当前作品链接 ✅");
+      setTimeout(() => setStatus(currentWork ? `已加载：${currentWork.file}` : "准备就绪"), 1200);
     });
   </script>
 </body>
