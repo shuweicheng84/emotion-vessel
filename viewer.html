@@ -25,6 +25,8 @@
       padding: 10px 10px;
       cursor: pointer;
       transition: .15s;
+      text-decoration: none;
+      color: inherit;
     }
     .item:hover { transform: translateY(-1px); border-color: rgba(255,255,255,.22); }
     .item .t { font-size: 13px; margin: 0 0 4px; }
@@ -51,13 +53,14 @@
     #canvasWrap { position: absolute; inset: 0; }
     .status {
       position: absolute; left: 12px; bottom: 12px;
-      font-size: 12px; opacity: .8;
-      background: rgba(0,0,0,.35);
+      font-size: 12px; opacity: .86;
+      background: rgba(0,0,0,.38);
       border: 1px solid rgba(255,255,255,.10);
       padding: 8px 10px; border-radius: 10px;
-      max-width: min(520px, calc(100% - 24px));
+      max-width: min(640px, calc(100% - 24px));
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
   </style>
 </head>
 <body>
@@ -83,7 +86,7 @@
         <div style="font-size:12px; opacity:.75" id="nowTitle">未加载</div>
         <div style="display:flex; gap:10px;">
           <a class="btn" href="index.html">返回首页</a>
-          <button class="btn" id="copyLinkBtn">复制当前作品链接</button>
+          <button class="btn" id="copyLinkBtn" type="button">复制当前作品链接</button>
         </div>
       </div>
 
@@ -100,7 +103,7 @@
      * ✅ 你只需要改这里三项：
      * - OWNER：GitHub 用户名
      * - REPO：仓库名
-     * - TAG：Release 的 tag（你截图里是 v0.1）
+     * - TAG：Release 的 tag（你现在是 v0.1）
      */
     const OWNER = "shuweicheng84";
     const REPO  = "emotion-vessel";
@@ -121,32 +124,51 @@
     const copyLinkBtn = document.getElementById("copyLinkBtn");
     const canvasWrap = document.getElementById("canvasWrap");
 
+    function setStatus(t) { statusEl.textContent = t; }
+
+    // ✅ 自检：页面打开就显示脚本确实在跑
+    nowTitleEl.textContent = "脚本已加载 ✅";
+    setStatus("脚本已运行，等待选择作品…（如果你看到这句，说明 JS 正常）");
+    console.log("viewer module loaded");
+
     function releaseUrl(filename) {
       // GitHub Release 资产直链：/releases/download/<tag>/<file>
       return `https://github.com/${OWNER}/${REPO}/releases/download/${TAG}/${encodeURIComponent(filename)}`;
     }
 
-    function setStatus(t) { statusEl.textContent = t; }
+    function clearCanvasWrap() {
+      canvasWrap.innerHTML = "";
+    }
 
-    // 渲染左侧列表
+    // 渲染左侧列表（点击不整页刷新，直接 pushState + render）
     WORKS.forEach(w => {
       const a = document.createElement("a");
       a.className = "item";
-      a.href = `?work=${encodeURIComponent(w.id)}`;
+      a.href = `viewer.html?work=${encodeURIComponent(w.id)}`;
+      a.dataset.work = w.id;
       a.innerHTML = `<p class="t">${w.title}</p><p class="s">${w.file}</p>`;
       listEl.appendChild(a);
     });
 
     // 动态加载 GaussianSplats3D（ESM）
-    // 使用方式参考：社区/官方示例中 Viewer.addSplatScene 的调用方式 
-    const mod = await import("https://cdn.jsdelivr.net/npm/gaussian-splats-3d@0.4.7/build/gaussian-splats-3d.module.js");
-    const { Viewer } = mod;
+    let Viewer;
+    try {
+      const mod = await import("https://cdn.jsdelivr.net/npm/gaussian-splats-3d@0.4.7/build/gaussian-splats-3d.module.js");
+      Viewer = mod.Viewer;
+      console.log("gaussian-splats-3d loaded", mod);
+    } catch (e) {
+      console.error(e);
+      setStatus("❌ 3D 渲染库加载失败（CDN/网络问题）。请稍后重试或换网络。");
+      nowTitleEl.textContent = "渲染库加载失败";
+      throw e;
+    }
 
     let viewer = null;
     let currentWork = null;
 
-    function clearCanvasWrap() {
-      canvasWrap.innerHTML = "";
+    function getWorkFromQuery() {
+      const sp = new URLSearchParams(location.search);
+      return sp.get("work") || WORKS[0].id;
     }
 
     async function loadWorkById(id) {
@@ -154,13 +176,14 @@
       currentWork = w;
 
       const url = releaseUrl(w.file);
-      nowTitleEl.textContent = `当前：${w.title}（来自 Release：${TAG}）`;
-      setStatus(`加载中：${url}`);
+      nowTitleEl.textContent = `当前：${w.title}（Release：${TAG}）`;
+      setStatus(`正在加载：${w.file} …`);
+      console.log("loadWorkById:", w.id, url);
 
       // 重新初始化 viewer，避免切换作品时残留
       clearCanvasWrap();
 
-      // 创建一个容器给 Viewer 挂 canvas
+      // 创建容器给 Viewer 挂 canvas
       const host = document.createElement("div");
       host.style.position = "absolute";
       host.style.inset = "0";
@@ -169,51 +192,60 @@
       // 初始化 Viewer
       viewer = new Viewer({
         rootElement: host,
-        sharedMemoryForWorkers: false, // 某些环境更稳
-        // 你想更“作品展示感”也可以改这些参数，但先默认最稳
+        sharedMemoryForWorkers: false
       });
 
       // 加载 PLY（3DGS）
-      // 注意：不同数据会有不同的尺度，你后续可以在 Supersplat 精修里做统一尺度
       try {
-  await viewer.addSplatScene(url, { progressiveLoad: true });
-  viewer.start();
-  setStatus(`已加载：${w.file}（可拖拽旋转/滚轮缩放）`);
-} catch (err) {
-  console.error(err);
-  setStatus(`加载失败：${w.file}（可能是模型链接/网络/CORS）`);
-  nowTitleEl.textContent = `加载失败：${w.title}`;
-}
+        await viewer.addSplatScene(url, { progressiveLoad: true });
+        viewer.start();
+        setStatus(`✅ 已加载：${w.file}（拖拽旋转 / 滚轮缩放）`);
+        console.log("loaded ok:", w.file);
+      } catch (err) {
+        console.error("addSplatScene error:", err);
+        setStatus(`❌ 加载失败：${w.file}（请打开 Console 看具体报错）`);
+        nowTitleEl.textContent = `加载失败：${w.title}`;
+      }
+    } // ✅✅✅ 你原文件这里缺了一个 }，导致后面全没执行
 
-    function getWorkFromQuery() {
-      const sp = new URLSearchParams(location.search);
-      return sp.get("work") || WORKS[0].id;
+    async function render() {
+      const id = getWorkFromQuery();
+      console.log("render called:", location.href, "work=", id);
+      await loadWorkById(id);
     }
 
     // 初次加载
-    await loadWorkById(getWorkFromQuery());
+    await render();
 
-    // 浏览器前进后退/点击列表时重新加载
-    window.addEventListener("popstate", async () => {
-      await loadWorkById(getWorkFromQuery());
+    // 浏览器前进后退：重新加载
+    window.addEventListener("popstate", () => {
+      render();
     });
 
-    // 点击左侧列表不刷新整页
-    listEl.addEventListener("click", async (e) => {
+    // 点击左侧列表：不刷新整页，直接 pushState + render
+    listEl.addEventListener("click", (e) => {
       const a = e.target.closest("a.item");
       if (!a) return;
       e.preventDefault();
-      history.pushState({}, "", a.getAttribute("href"));
-      await loadWorkById(getWorkFromQuery());
+      const work = a.dataset.work;
+      history.pushState({}, "", `viewer.html?work=${encodeURIComponent(work)}`);
+      render();
     });
 
     // 复制当前作品链接
     copyLinkBtn.addEventListener("click", async () => {
       const url = new URL(location.href);
       url.searchParams.set("work", currentWork?.id || WORKS[0].id);
-      await navigator.clipboard.writeText(url.toString());
-      setStatus("已复制当前作品链接 ✅");
-      setTimeout(() => setStatus(`已加载：${currentWork.file}`), 1200);
+      try {
+        await navigator.clipboard.writeText(url.toString());
+        setStatus("已复制当前作品链接 ✅");
+        setTimeout(() => {
+          setStatus(currentWork ? `✅ 已加载：${currentWork.file}` : "准备就绪");
+        }, 1200);
+      } catch (e) {
+        console.error(e);
+        setStatus("复制失败：浏览器不允许剪贴板（可手动复制地址栏链接）");
+      }
     });
   </script>
 </body>
