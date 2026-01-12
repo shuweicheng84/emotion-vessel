@@ -175,15 +175,15 @@
 
       // 加载 PLY（3DGS）
       // 注意：不同数据会有不同的尺度，你后续可以在 Supersplat 精修里做统一尺度
-      await viewer.addSplatScene(url, {
-        // 这几个是常用参数，先保守设置
-        progressiveLoad: true,
-        // 这里不硬设 scale/rotation，避免把你的作品“转飞”
-      });
-
-      viewer.start();
-      setStatus(`已加载：${w.file}（可拖拽旋转/滚轮缩放）`);
-    }
+      try {
+  await viewer.addSplatScene(url, { progressiveLoad: true });
+  viewer.start();
+  setStatus(`已加载：${w.file}（可拖拽旋转/滚轮缩放）`);
+} catch (err) {
+  console.error(err);
+  setStatus(`加载失败：${w.file}（可能是模型链接/网络/CORS）`);
+  nowTitleEl.textContent = `加载失败：${w.title}`;
+}
 
     function getWorkFromQuery() {
       const sp = new URLSearchParams(location.search);
