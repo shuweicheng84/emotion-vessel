@@ -1,140 +1,296 @@
-<section id="choose" style="margin-top:36px;">
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Emotion Vessel · 3D 展厅</title>
 
-  <div style="opacity:.6; letter-spacing:.18em; font-size:12px;">
-    STEP 3
-  </div>
-  <h2 style="margin:10px 0 8px;">选择情绪容器</h2>
-  <p style="opacity:.8; max-width:820px; line-height:1.8;">
-    情绪并不总是需要被分析或解决。  
-    在这里，你只需要为它选择一个合适的“安放方式”。
-  </p>
+  <!-- ✅ 关键：importmap 必须出现在任何 module script 之前 -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "./assets/vendor/three/three.module.js",
+      "three/addons/": "./assets/vendor/three/addons/"
+    }
+  }
+  </script>
 
-  <div class="container-grid">
+  <style>
+    html, body { margin: 0; height: 100%; background: #0b0c10; color: #e6e6e6; font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", Arial, sans-serif; }
+    .wrap { display: grid; grid-template-columns: 320px 1fr; height: 100%; }
+    .side {
+      border-right: 1px solid rgba(255,255,255,.08);
+      padding: 16px 14px;
+      background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,0));
+      overflow: auto;
+    }
+    .brand { font-size: 14px; letter-spacing: .12em; opacity: .8; margin: 6px 0 14px; }
+    .h1 { font-size: 18px; margin: 0 0 10px; }
+    .hint { font-size: 12px; opacity: .7; line-height: 1.6; margin-bottom: 14px; }
+    .list { display: grid; gap: 10px; }
+    .item {
+      display: block;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.03);
+      border-radius: 12px;
+      padding: 10px 10px;
+      cursor: pointer;
+      transition: .15s;
+      color: inherit;
+      text-decoration: none;
+    }
+    .item:hover { transform: translateY(-1px); border-color: rgba(255,255,255,.22); }
+    .item .t { font-size: 13px; margin: 0 0 4px; }
+    .item .s { font-size: 12px; opacity: .65; margin: 0; }
+    .topbar {
+      display: flex; gap: 10px; align-items: center; justify-content: space-between;
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      background: rgba(0,0,0,.25);
+    }
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      border: 1px solid rgba(255,255,255,.16);
+      background: rgba(255,255,255,.06);
+      color: #fff;
+      padding: 8px 10px;
+      border-radius: 10px;
+      text-decoration: none;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .btn:hover { border-color: rgba(255,255,255,.28); }
+    #viewerHost { position: relative; height: calc(100% - 48px); }
+    #canvasWrap { position: absolute; inset: 0; }
+    .status {
+      position: absolute; left: 12px; bottom: 12px;
+      font-size: 12px; opacity: .95;
+      background: rgba(0,0,0,.38);
+      border: 1px solid rgba(255,255,255,.10);
+      padding: 8px 10px; border-radius: 10px;
+      max-width: min(820px, calc(100% - 24px));
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .bigHint {
+      position: absolute; inset: 0;
+      display: none;
+      align-items: center; justify-content: center;
+      padding: 24px;
+      color: rgba(255,255,255,.85);
+      backdrop-filter: blur(2px);
+    }
+    .bigHint .card{
+      max-width: 760px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.03);
+      border-radius: 16px;
+      padding: 18px;
+      line-height: 1.7;
+    }
+    .bigHint code{
+      background: rgba(0,0,0,.25);
+      padding: 2px 6px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,.08);
+    }
+    .bigHint a { color: #cfe3ff; }
+  </style>
+</head>
 
-    <!-- 玻璃鱼缸 -->
-    <div class="container-card glass">
-      <div class="container-title">玻璃鱼缸</div>
-      <div class="container-en">Glass Tank</div>
-      <div class="container-desc">
-        透明，却并非敞开。  
-        情绪被看见、被承认，但仍然被温和地隔离在外。
+<body>
+  <div class="wrap">
+    <aside class="side">
+      <div class="brand">EMOTION VESSEL</div>
+      <h1 class="h1">3D 情绪容器 · 展厅</h1>
+      <div class="hint">
+        点击左侧作品加载 3D 高斯场景。<br/>
+        说明：这些 .ply 文件来自 Sharp 单图生成的 3D Gaussian Splats，并经过 Supersplat 精修裁剪。
       </div>
-    </div>
 
-    <!-- 火柴盒 -->
-    <div class="container-card matchbox">
-      <div class="container-title">火柴盒</div>
-      <div class="container-en">Matchbox</div>
-      <div class="container-desc">
-        很小，很近。  
-        只容纳一个瞬间的感受，不延展，也不回看。
+      <div class="list" id="list"></div>
+
+      <div style="margin-top:14px; opacity:.7; font-size:12px; line-height:1.6;">
+        小提示：你也可以用 URL 直达某个作品：<br/>
+        <code style="opacity:.9">viewer.html?work=01_figure</code>
       </div>
-    </div>
+    </aside>
 
-    <!-- 木质抽屉 -->
-    <div class="container-card drawer">
-      <div class="container-title">木质抽屉</div>
-      <div class="container-en">Wooden Drawer</div>
-      <div class="container-desc">
-        被收纳、被叠放。  
-        情绪没有被处理，只是暂时安置，等待以后再被打开。
+    <main>
+      <div class="topbar">
+        <div style="font-size:12px; opacity:.75" id="nowTitle">未加载</div>
+        <div style="display:flex; gap:10px;">
+          <a class="btn" href="index.html">返回首页</a>
+          <button class="btn" id="copyLinkBtn">复制当前作品链接</button>
+        </div>
       </div>
-    </div>
 
+      <div id="viewerHost">
+        <div id="canvasWrap"></div>
+
+        <div class="bigHint" id="bigHint">
+          <div class="card" id="bigHintText"></div>
+        </div>
+
+        <div class="status" id="status">准备就绪</div>
+      </div>
+    </main>
   </div>
 
-  <div style="margin-top:26px; display:flex; gap:14px; flex-wrap:wrap;">
-    <a class="enter-btn">进入安放空间</a>
-    <a class="back-btn">回到单图转高斯向导</a>
-  </div>
+  <script type="module">
+    // ========= 0) 作品列表（走仓库内相对路径，不走 Release / 不走 CDN） =========
+    const WORKS = [
+      { id: "01_figure",    title: "01 Figure",    file: "assets/ply/clean/01_figure.ply" },
+      { id: "02_sculpture", title: "02 Sculpture", file: "assets/ply/clean/02_sculpture.ply" },
+      { id: "03_painting",  title: "03 Painting",  file: "assets/ply/clean/03_painting.ply" },
+      { id: "04_ecnu",      title: "04 ECNU",      file: "assets/ply/clean/04_ecnu.ply" },
+      { id: "08_figure",    title: "08 Figure",    file: "assets/ply/clean/08_figure.ply" }
+    ];
 
-</section>
+    // ========= 1) DOM =========
+    const statusEl = document.getElementById("status");
+    const listEl = document.getElementById("list");
+    const nowTitleEl = document.getElementById("nowTitle");
+    const copyLinkBtn = document.getElementById("copyLinkBtn");
+    const canvasWrap = document.getElementById("canvasWrap");
+    const bigHint = document.getElementById("bigHint");
+    const bigHintText = document.getElementById("bigHintText");
 
-<style>
-  .container-grid{
-    display:grid;
-    grid-template-columns:repeat(3, minmax(0,1fr));
-    gap:18px;
-    margin-top:20px;
-  }
+    function setStatus(t) { statusEl.textContent = t; }
+    function showBigHint(html) { bigHintText.innerHTML = html; bigHint.style.display = "flex"; }
+    function hideBigHint() { bigHint.style.display = "none"; }
 
-  .container-card{
-    position:relative;
-    border-radius:18px;
-    padding:18px 16px 20px;
-    min-height:160px;
-    transition:.25s;
-    cursor:default;
-  }
+    function renderList() {
+      listEl.innerHTML = "";
+      WORKS.forEach(w => {
+        const a = document.createElement("a");
+        a.className = "item";
+        a.href = `?work=${encodeURIComponent(w.id)}`;
+        a.innerHTML = `<p class="t">${w.title}</p><p class="s">${w.file}</p>`;
+        listEl.appendChild(a);
+      });
+    }
+    renderList();
 
-  .container-card:hover{
-    transform:translateY(-2px);
-  }
+    // ========= 2) 加载本地 3D 库 =========
+    const GS3D_LOCAL = "./assets/vendor/gs3d/gaussian-splats-3d.module.js";
 
-  .container-title{
-    font-size:16px;
-    font-weight:700;
-    margin-bottom:4px;
-  }
+    async function loadViewerClass() {
+      setStatus("加载 3D 渲染库中（本地 vendor）…");
+      try {
+        // 注意：这里的模块内部如果 import 'three' / 'three/addons/...'，
+        // 会走 head 里的 importmap 到你的本地 three 文件
+        const mod = await import(GS3D_LOCAL);
+        const Viewer = mod.Viewer || mod.default?.Viewer || mod.default;
+        if (!Viewer) throw new Error("已加载 gs3d 模块，但找不到 Viewer 导出");
+        setStatus("脚本已加载 ✅（本地 vendor）");
+        return Viewer;
+      } catch (e) {
+        console.error(e);
+        const msg = (e && e.message) ? e.message : String(e);
+        showBigHint(`
+          <b>3D 渲染库没有加载成功。</b><br/><br/>
+          <b>你现在需要同时满足：</b><br/>
+          1）<code>assets/vendor/gs3d/gaussian-splats-3d.module.js</code><br/>
+          2）<code>assets/vendor/three/three.module.js</code> 和 <code>three.core.js</code><br/>
+          3）<code>assets/vendor/three/addons/</code>（从 three 的 <code>examples/jsm</code> 拷贝而来）<br/>
+          4）本页顶部存在 importmap：<br/>
+          <code>"three": "./assets/vendor/three/three.module.js"</code><br/>
+          <code>"three/addons/": "./assets/vendor/three/addons/"</code><br/><br/>
+          <b>当前报错：</b><br/>
+          <code>${escapeHtml(msg)}</code><br/><br/>
+          <span style="opacity:.85">打开控制台（F12）能看到缺的具体文件名；一般是 addons 还没上传完整。</span>
+        `);
+        setStatus("❌ 3D 渲染库加载失败（本地文件缺失 / importmap 未生效）");
+        throw e;
+      }
+    }
 
-  .container-en{
-    font-size:12px;
-    opacity:.6;
-    margin-bottom:10px;
-    letter-spacing:.04em;
-  }
+    function escapeHtml(s) {
+      return s.replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
 
-  .container-desc{
-    font-size:13px;
-    line-height:1.8;
-    opacity:.85;
-  }
+    // ========= 3) 业务逻辑 =========
+    let ViewerClass = null;
+    let viewer = null;
+    let currentWork = null;
 
-  /* 不同容器的“气质差异” */
-  .glass{
-    border:1px solid rgba(255,255,255,.18);
-    background:linear-gradient(
-      180deg,
-      rgba(255,255,255,.08),
-      rgba(255,255,255,.02)
-    );
-  }
+    function clearCanvasWrap() {
+      canvasWrap.innerHTML = "";
+      viewer = null;
+    }
 
-  .matchbox{
-    border:1px solid rgba(255,200,120,.25);
-    background:linear-gradient(
-      180deg,
-      rgba(255,160,80,.12),
-      rgba(60,30,10,.25)
-    );
-  }
+    function getWorkFromQuery() {
+      const sp = new URLSearchParams(location.search);
+      return sp.get("work") || WORKS[0].id;
+    }
 
-  .drawer{
-    border:1px solid rgba(160,130,90,.35);
-    background:linear-gradient(
-      180deg,
-      rgba(120,90,60,.18),
-      rgba(40,30,20,.35)
-    );
-  }
+    async function loadWorkById(id) {
+      const w = WORKS.find(x => x.id === id) || WORKS[0];
+      currentWork = w;
+      hideBigHint();
 
-  .enter-btn{
-    padding:12px 18px;
-    border-radius:14px;
-    background:#fff;
-    color:#111;
-    font-weight:600;
-    text-decoration:none;
-    cursor:pointer;
-  }
+      nowTitleEl.textContent = `当前：${w.title}`;
+      setStatus(`准备加载：${w.file}`);
 
-  .back-btn{
-    padding:12px 18px;
-    border-radius:14px;
-    border:1px solid rgba(255,255,255,.18);
-    background:rgba(255,255,255,.04);
-    color:#fff;
-    text-decoration:none;
-    cursor:pointer;
-  }
-</style>
+      if (!ViewerClass) ViewerClass = await loadViewerClass();
+
+      clearCanvasWrap();
+      const host = document.createElement("div");
+      host.style.position = "absolute";
+      host.style.inset = "0";
+      canvasWrap.appendChild(host);
+
+      try {
+        viewer = new ViewerClass({
+          rootElement: host,
+          sharedMemoryForWorkers: false
+        });
+
+        setStatus(`加载中：${w.file}`);
+
+        // 加载 splat 场景（相对路径）
+        await viewer.addSplatScene(`./${w.file}`, { progressiveLoad: true });
+        viewer.start();
+
+        setStatus(`已加载：${w.file}（拖拽旋转 / 滚轮缩放）`);
+      } catch (err) {
+        console.error(err);
+        const msg = (err && err.message) ? err.message : String(err);
+        setStatus(`❌ 加载失败：${w.file}`);
+        showBigHint(`
+          <b>PLY 加载失败。</b><br/><br/>
+          <b>常见原因：</b><br/>
+          1）路径不对：<code>${escapeHtml(w.file)}</code><br/>
+          2）文件没在仓库里 / GitHub Pages 没更新<br/>
+          3）网络中断或文件太大<br/><br/>
+          <b>当前报错：</b><br/>
+          <code>${escapeHtml(msg)}</code><br/>
+        `);
+      }
+    }
+
+    // ========= 4) 交互 =========
+    await loadWorkById(getWorkFromQuery());
+
+    window.addEventListener("popstate", async () => {
+      await loadWorkById(getWorkFromQuery());
+    });
+
+    listEl.addEventListener("click", async (e) => {
+      const a = e.target.closest("a.item");
+      if (!a) return;
+      e.preventDefault();
+      history.pushState({}, "", a.getAttribute("href"));
+      await loadWorkById(getWorkFromQuery());
+    });
+
+    copyLinkBtn.addEventListener("click", async () => {
+      const url = new URL(location.href);
+      url.searchParams.set("work", currentWork?.id || WORKS[0].id);
+      await navigator.clipboard.writeText(url.toString());
+      setStatus("已复制当前作品链接 ✅");
+      setTimeout(() => setStatus(currentWork ? `已加载：${currentWork.file}` : "准备就绪"), 1200);
+    });
+  </script>
+</body>
+</html>
