@@ -11,12 +11,15 @@
       --bg:#07080b;
       --panel:rgba(255,255,255,.04);
       --panel2:rgba(255,255,255,.06);
-      --line:rgba(255,255,255,.10);
+      --line:rgba(255,255,255,.12);
       --text:rgba(255,255,255,.92);
-      --muted:rgba(255,255,255,.70);
+      --muted:rgba(255,255,255,.72);
       --muted2:rgba(255,255,255,.55);
-      --shadow: 0 18px 60px rgba(0,0,0,.55);
+      --shadow: 0 18px 60px rgba(0,0,0,.60);
       --radius: 22px;
+
+      --accent: rgba(255,255,255,.92);
+      --accentText: #0d0f14;
     }
     *{box-sizing:border-box;}
     html,body{height:100%;}
@@ -37,13 +40,13 @@
       margin:0 auto;
     }
 
-    /* 顶部导航 */
+    /* ===== 顶部导航：把“进入3D”放在正式位置（不做浮窗） ===== */
     .nav{
       position:sticky;
       top:0;
       z-index:50;
       backdrop-filter: blur(12px);
-      background: linear-gradient(180deg, rgba(0,0,0,.58), rgba(0,0,0,.20));
+      background: linear-gradient(180deg, rgba(0,0,0,.64), rgba(0,0,0,.20));
       border-bottom:1px solid rgba(255,255,255,.06);
     }
     .nav-inner{
@@ -57,13 +60,13 @@
       display:flex;
       flex-direction:column;
       gap:2px;
-      min-width: 200px;
+      min-width: 240px;
     }
     .brand .t{
-      font-weight:750;
-      letter-spacing:.14em;
+      font-weight:800;
+      letter-spacing:.16em;
       font-size:12px;
-      opacity:.8;
+      opacity:.85;
     }
     .brand .s{
       font-size:12px;
@@ -76,83 +79,95 @@
       justify-content:flex-end;
     }
     .chip{
-      border:1px solid rgba(255,255,255,.12);
+      border:1px solid rgba(255,255,255,.14);
       background: rgba(255,255,255,.05);
       padding:9px 12px;
       border-radius: 999px;
       text-decoration:none;
       font-size:12px;
-      opacity:.9;
+      opacity:.92;
       transition:.18s;
+      user-select:none;
     }
-    .chip:hover{border-color:rgba(255,255,255,.22); transform: translateY(-1px);}
+    .chip:hover{border-color:rgba(255,255,255,.26); transform: translateY(-1px);}
     .chip.primary{
-      background: rgba(255,255,255,.92);
-      color:#0d0f14;
+      background: var(--accent);
+      color: var(--accentText);
       border-color: transparent;
-      font-weight:700;
+      font-weight:800;
     }
 
-    /* Hero */
-    .hero{
-      padding: 46px 0 18px;
-    }
+    /* ===== Hero ===== */
+    .hero{padding: 44px 0 18px;}
     .hero-grid{
       display:grid;
       grid-template-columns: 1.05fr .95fr;
       gap:18px;
       align-items:stretch;
     }
-    @media (max-width: 940px){
-      .hero-grid{grid-template-columns:1fr; }
-    }
-    .hero-card{
+    @media (max-width: 940px){ .hero-grid{grid-template-columns:1fr;} }
+
+    .card{
       border:1px solid rgba(255,255,255,.10);
-      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
       border-radius: var(--radius);
       box-shadow: var(--shadow);
-      padding: 22px 22px 18px;
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
       overflow:hidden;
       position:relative;
     }
-    .hero-card::after{
+    .card.pad{padding: 22px 22px 18px;}
+    .card::after{
       content:"";
       position:absolute;
       inset:-2px;
       background: radial-gradient(520px 220px at 20% 0%, rgba(120,210,255,.14), transparent 60%);
       pointer-events:none;
-      opacity:.9;
+      opacity:.85;
     }
-    .hero h1{
-      margin: 6px 0 10px;
-      font-size: 40px;
-      line-height:1.12;
-      letter-spacing:.01em;
+
+    .pill{
+      display:inline-flex;
+      gap:8px;
+      align-items:center;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.18);
+      padding: 8px 10px;
+      border-radius:999px;
+      font-size:12px;
+      opacity:.88;
       position:relative;
       z-index:1;
     }
-    .hero .sub{
+    h1{
+      margin: 10px 0 10px;
+      font-size: 40px;
+      line-height:1.12;
+      position:relative;
+      z-index:1;
+    }
+    .sub{
       margin:0;
-      opacity:.75;
+      opacity:.78;
       line-height:1.85;
-      max-width: 58ch;
+      max-width: 62ch;
       position:relative;
       z-index:1;
       font-size:14px;
     }
-    .hero .quote{
+    .quote{
       margin: 14px 0 0;
       padding: 12px 14px;
       border-radius: 16px;
       border:1px dashed rgba(255,255,255,.14);
       background: rgba(0,0,0,.18);
-      color: rgba(255,255,255,.80);
+      color: rgba(255,255,255,.82);
       line-height:1.8;
       font-size:13px;
       position:relative;
       z-index:1;
     }
-    .hero-actions{
+
+    .actions{
       display:flex;
       gap:12px;
       flex-wrap:wrap;
@@ -168,86 +183,39 @@
       padding: 12px 16px;
       border-radius: 16px;
       text-decoration:none;
-      font-weight:700;
+      font-weight:800;
       font-size:13px;
-      border:1px solid rgba(255,255,255,.16);
+      border:1px solid rgba(255,255,255,.18);
       background: rgba(255,255,255,.06);
       transition:.18s;
       cursor:pointer;
       user-select:none;
     }
-    .btn:hover{border-color:rgba(255,255,255,.28); transform: translateY(-1px);}
+    .btn:hover{border-color:rgba(255,255,255,.30); transform: translateY(-1px);}
     .btn.primary{
-      background: rgba(255,255,255,.92);
-      color:#0d0f14;
+      background: var(--accent);
+      color: var(--accentText);
       border-color: transparent;
     }
-    .btn.ghost{
-      background: rgba(0,0,0,.12);
-    }
+    .btn.ghost{background: rgba(0,0,0,.12);}
+
     .mini{
       font-size:12px;
-      opacity:.65;
+      opacity:.62;
       margin-top: 10px;
       line-height:1.7;
       position:relative;
       z-index:1;
     }
-
-    .right-card{
+    code.inline{
+      padding:2px 6px;
+      border-radius: 10px;
       border:1px solid rgba(255,255,255,.10);
-      background: radial-gradient(900px 400px at 30% 12%, rgba(255,255,255,.08), transparent 60%),
-                  rgba(255,255,255,.03);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      padding: 18px;
-      overflow:hidden;
-      position:relative;
-    }
-    .pill{
-      display:inline-flex;
-      gap:8px;
-      align-items:center;
-      border:1px solid rgba(255,255,255,.12);
-      background: rgba(0,0,0,.18);
-      padding: 8px 10px;
-      border-radius:999px;
-      font-size:12px;
-      opacity:.85;
-    }
-    .right-title{
-      margin: 12px 0 8px;
-      font-size:16px;
-      font-weight:800;
-    }
-    .checklist{
-      margin:0;
-      padding:0;
-      list-style:none;
-      display:grid;
-      gap:10px;
-      opacity:.86;
-      font-size:13px;
-      line-height:1.75;
-    }
-    .checklist li{
-      border:1px solid rgba(255,255,255,.10);
-      background: rgba(0,0,0,.16);
-      border-radius: 16px;
-      padding: 10px 12px;
-    }
-    .checklist b{font-weight:800;}
-    .right-foot{
-      margin-top: 12px;
-      font-size:12px;
-      opacity:.62;
-      line-height:1.65;
+      background: rgba(0,0,0,.22);
     }
 
-    /* Section */
-    section{
-      padding: 22px 0;
-    }
+    /* ===== Section ===== */
+    section{padding: 22px 0;}
     .section-head{
       display:flex;
       align-items:flex-end;
@@ -255,33 +223,20 @@
       gap:16px;
       margin-bottom: 12px;
     }
-    .section-head h2{
-      margin:0;
-      font-size:18px;
-      letter-spacing:.02em;
-    }
-    .section-head p{
-      margin:0;
-      font-size:12px;
-      opacity:.62;
-      line-height:1.6;
-      max-width: 50ch;
-      text-align:right;
-    }
+    .section-head h2{margin:0; font-size:18px; letter-spacing:.02em;}
+    .section-head p{margin:0; font-size:12px; opacity:.62; line-height:1.6; max-width: 58ch; text-align:right;}
     @media (max-width: 720px){
       .section-head{flex-direction:column; align-items:flex-start;}
       .section-head p{text-align:left;}
     }
 
-    /* Steps */
+    /* ===== Steps ===== */
     .steps{
       display:grid;
       grid-template-columns: repeat(3, minmax(0,1fr));
       gap:14px;
     }
-    @media (max-width: 940px){
-      .steps{grid-template-columns:1fr;}
-    }
+    @media (max-width: 940px){ .steps{grid-template-columns:1fr;} }
     .step{
       border:1px solid rgba(255,255,255,.10);
       background: rgba(255,255,255,.03);
@@ -298,103 +253,246 @@
       pointer-events:none;
       opacity:.8;
     }
-    .step .k{
-      font-size:12px;
-      letter-spacing:.18em;
-      opacity:.55;
-      position:relative;
-      z-index:1;
-    }
-    .step .t{
-      margin:8px 0 6px;
-      font-weight:850;
-      position:relative;
-      z-index:1;
-      font-size:15px;
-    }
-    .step .d{
-      margin:0;
-      opacity:.74;
-      line-height:1.8;
-      font-size:13px;
-      position:relative;
-      z-index:1;
-    }
-    .step .meta{
-      margin-top: 10px;
-      display:flex;
-      flex-wrap:wrap;
-      gap:8px;
-      position:relative;
-      z-index:1;
-    }
+    .k{font-size:12px; letter-spacing:.18em; opacity:.55; position:relative; z-index:1;}
+    .t{margin:8px 0 6px; font-weight:900; position:relative; z-index:1; font-size:15px;}
+    .d{margin:0; opacity:.76; line-height:1.8; font-size:13px; position:relative; z-index:1;}
+    .meta{margin-top: 10px; display:flex; flex-wrap:wrap; gap:8px; position:relative; z-index:1;}
     .tag{
-      font-size:12px;
-      opacity:.75;
+      font-size:12px; opacity:.78;
       border:1px solid rgba(255,255,255,.12);
       background: rgba(0,0,0,.14);
       padding:6px 10px;
       border-radius:999px;
     }
 
-    /* 容器选择 */
+    /* ===== 制作：3D 预览（真实 3D） ===== */
+    .make-grid{
+      display:grid;
+      grid-template-columns: 1.05fr .95fr;
+      gap:14px;
+      align-items:stretch;
+    }
+    @media (max-width: 940px){ .make-grid{grid-template-columns:1fr;} }
+    .make-box{
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.18);
+      border-radius: var(--radius);
+      padding: 14px;
+      position:relative;
+      overflow:hidden;
+    }
+    .make-box h3{margin:0 0 8px; font-size:14px; letter-spacing:.03em;}
+    .make-box p{margin:0; font-size:13px; opacity:.78; line-height:1.85;}
+    .make-box .row{margin-top:12px; display:flex; gap:10px; flex-wrap:wrap;}
+    .linkbtn{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.05);
+      text-decoration:none;
+      font-size:12px;
+      font-weight:800;
+      opacity:.92;
+      transition:.18s;
+    }
+    .linkbtn:hover{border-color:rgba(255,255,255,.26); transform: translateY(-1px);}
+    .viewer-slot{
+      border:1px solid rgba(255,255,255,.10);
+      background: radial-gradient(900px 400px at 30% 12%, rgba(255,255,255,.06), transparent 60%),
+                  rgba(255,255,255,.03);
+      border-radius: var(--radius);
+      overflow:hidden;
+      position:relative;
+      min-height: 320px;
+    }
+    .viewer-top{
+      position:absolute; left:12px; top:12px; right:12px;
+      display:flex; justify-content:space-between; gap:10px; align-items:center;
+      z-index:2;
+    }
+    .viewer-top .badge{
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.22);
+      padding: 8px 10px;
+      border-radius: 999px;
+      font-size:12px;
+      opacity:.85;
+    }
+    .select{
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.22);
+      color: rgba(255,255,255,.90);
+      border-radius: 999px;
+      padding: 8px 10px;
+      font-size:12px;
+      outline:none;
+    }
+    #preview3d{
+      position:absolute; inset:0;
+      width:100%; height:100%;
+      display:block;
+    }
+    .viewer-help{
+      position:absolute; left:12px; bottom:12px;
+      font-size:12px; opacity:.72;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.26);
+      padding: 8px 10px;
+      border-radius: 14px;
+      z-index:2;
+      max-width: min(760px, calc(100% - 24px));
+    }
+
+    /* ===== 容器：写实拟真卡片（更像实物摄影的UI） ===== */
     .container-grid{
       display:grid;
       grid-template-columns:repeat(3, minmax(0,1fr));
       gap:18px;
       margin-top:14px;
     }
-    @media (max-width: 940px){
-      .container-grid{grid-template-columns:1fr;}
-    }
-    .container-card{
-      position:relative;
-      border-radius:22px;
-      padding:18px 16px 18px;
-      min-height:150px;
-      transition:.22s;
-      overflow:hidden;
-    }
-    .container-card:hover{ transform: translateY(-2px); }
-    .container-title{font-size:16px; font-weight:900; margin-bottom:4px;}
-    .container-en{font-size:12px; opacity:.6; margin-bottom:10px; letter-spacing:.04em;}
-    .container-desc{font-size:13px; line-height:1.85; opacity:.85; margin:0;}
+    @media (max-width: 940px){ .container-grid{grid-template-columns:1fr;} }
 
+    .vessel{
+      position:relative;
+      border-radius: 24px;
+      padding:18px 16px 16px;
+      overflow:hidden;
+      transition:.22s;
+      box-shadow: 0 20px 60px rgba(0,0,0,.45);
+      cursor:pointer;
+      user-select:none;
+      min-height: 168px;
+    }
+    .vessel:hover{transform: translateY(-2px);}
+
+    .v-h{font-size:16px; font-weight:950; margin-bottom:4px; letter-spacing:.02em; position:relative; z-index:2;}
+    .v-en{font-size:12px; opacity:.62; margin-bottom:10px; letter-spacing:.05em; position:relative; z-index:2;}
+    .v-d{font-size:13px; line-height:1.85; opacity:.86; margin:0; position:relative; z-index:2;}
+    .v-m{margin-top:12px; display:flex; gap:8px; flex-wrap:wrap; position:relative; z-index:2;}
+    .v-chip{
+      font-size:12px;
+      opacity:.78;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.18);
+      padding:6px 10px;
+      border-radius:999px;
+    }
+
+    /* 玻璃：高光 + 折射纹理 */
     .glass{
-      border:1px solid rgba(255,255,255,.18);
-      background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.02));
+      border:1px solid rgba(200,230,255,.22);
+      background:
+        radial-gradient(220px 160px at 22% 18%, rgba(255,255,255,.22), transparent 60%),
+        radial-gradient(240px 160px at 80% 30%, rgba(120,210,255,.18), transparent 60%),
+        linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.02)),
+        rgba(10,12,18,.30);
+    }
+    .glass::before{
+      content:"";
+      position:absolute; inset:-2px;
+      background:
+        repeating-linear-gradient(115deg, rgba(255,255,255,.06), rgba(255,255,255,.06) 2px, transparent 2px, transparent 9px);
+      opacity:.18;
+      pointer-events:none;
+      transform: translateZ(0);
     }
     .glass::after{
       content:"";
-      position:absolute; inset:-2px;
-      background: radial-gradient(520px 240px at 25% 0%, rgba(140,210,255,.18), transparent 60%);
-      opacity:.8;
+      position:absolute;
+      right:-80px; top:-80px;
+      width:220px; height:220px;
+      border-radius: 999px;
+      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,.22), rgba(255,255,255,0) 70%);
+      opacity:.85;
       pointer-events:none;
+      filter: blur(0px);
     }
-    .matchbox{
-      border:1px solid rgba(255,200,120,.24);
-      background:linear-gradient(180deg, rgba(255,160,80,.12), rgba(60,30,10,.26));
-    }
-    .matchbox::after{
-      content:"";
-      position:absolute; inset:-2px;
-      background: radial-gradient(520px 240px at 20% 0%, rgba(255,160,90,.18), transparent 62%);
-      opacity:.8;
-      pointer-events:none;
-    }
-    .drawer{
-      border:1px solid rgba(160,130,90,.34);
-      background:linear-gradient(180deg, rgba(120,90,60,.18), rgba(40,30,20,.38));
-    }
-    .drawer::after{
-      content:"";
-      position:absolute; inset:-2px;
-      background: radial-gradient(520px 240px at 25% 0%, rgba(200,170,120,.16), transparent 62%);
-      opacity:.75;
-      pointer-events:none;
+    .glass .vessel-icon{
+      position:absolute; right:14px; bottom:12px;
+      width:92px; height:92px;
+      border-radius: 18px;
+      border:1px solid rgba(255,255,255,.16);
+      background:
+        radial-gradient(60px 60px at 40% 30%, rgba(255,255,255,.30), rgba(255,255,255,0) 70%),
+        linear-gradient(180deg, rgba(120,210,255,.18), rgba(255,255,255,.02));
+      opacity:.92;
+      box-shadow: 0 12px 30px rgba(0,0,0,.35);
     }
 
-    /* 容器说明条 */
+    /* 火柴盒：纸质纹理 + 焦边色温 */
+    .matchbox{
+      border:1px solid rgba(255,210,140,.26);
+      background:
+        radial-gradient(240px 180px at 22% 18%, rgba(255,255,255,.12), transparent 60%),
+        radial-gradient(260px 180px at 82% 28%, rgba(255,170,90,.18), transparent 62%),
+        linear-gradient(180deg, rgba(255,170,90,.10), rgba(60,30,10,.34)),
+        rgba(12,10,8,.42);
+    }
+    .matchbox::before{
+      content:"";
+      position:absolute; inset:-2px;
+      background:
+        repeating-linear-gradient(0deg, rgba(255,255,255,.05), rgba(255,255,255,.05) 1px, transparent 1px, transparent 7px);
+      opacity:.14;
+      pointer-events:none;
+    }
+    .matchbox .vessel-icon{
+      position:absolute; right:14px; bottom:12px;
+      width:92px; height:92px;
+      border-radius: 18px;
+      border:1px solid rgba(255,210,140,.22);
+      background:
+        linear-gradient(180deg, rgba(255,200,140,.16), rgba(40,20,8,.22));
+      box-shadow: 0 12px 30px rgba(0,0,0,.35);
+    }
+    .matchbox .vessel-icon::after{
+      content:"";
+      position:absolute; left:10px; top:10px; right:10px; bottom:10px;
+      border-radius: 14px;
+      border:1px dashed rgba(255,255,255,.18);
+      opacity:.8;
+    }
+
+    /* 抽屉：木纹 + 金属拉手 */
+    .drawer{
+      border:1px solid rgba(200,170,120,.30);
+      background:
+        radial-gradient(260px 180px at 26% 18%, rgba(255,255,255,.10), transparent 62%),
+        linear-gradient(180deg, rgba(140,110,80,.18), rgba(36,26,18,.46)),
+        rgba(8,8,8,.42);
+    }
+    .drawer::before{
+      content:"";
+      position:absolute; inset:-2px;
+      background:
+        repeating-linear-gradient(90deg, rgba(220,190,140,.08), rgba(220,190,140,.08) 2px, transparent 2px, transparent 12px);
+      opacity:.18;
+      pointer-events:none;
+      transform: rotate(0.001deg);
+    }
+    .drawer .vessel-icon{
+      position:absolute; right:14px; bottom:12px;
+      width:92px; height:92px;
+      border-radius: 18px;
+      border:1px solid rgba(255,255,255,.14);
+      background:
+        linear-gradient(180deg, rgba(200,170,120,.18), rgba(20,12,6,.24));
+      box-shadow: 0 12px 30px rgba(0,0,0,.35);
+    }
+    .drawer .vessel-icon::after{
+      content:"";
+      position:absolute;
+      left:18px; right:18px; top:38px; height:14px;
+      border-radius: 999px;
+      background: linear-gradient(180deg, rgba(255,255,255,.35), rgba(0,0,0,.22));
+      border:1px solid rgba(255,255,255,.12);
+      opacity:.95;
+    }
+
     .choice-note{
       margin-top:14px;
       border:1px solid rgba(255,255,255,.10);
@@ -403,17 +501,11 @@
       padding: 14px 14px;
       line-height:1.85;
       font-size:13px;
-      opacity:.88;
+      opacity:.90;
     }
     .choice-note b{font-weight:900;}
-    .choice-actions{
-      margin-top: 14px;
-      display:flex;
-      gap:12px;
-      flex-wrap:wrap;
-    }
 
-    /* 作品与展厅入口（放到合适位置：固定在上方 CTA，而不是浮窗） */
+    /* ===== 中段 CTA：正式入口（再次强调，不做浮窗） ===== */
     .cta-band{
       margin-top: 14px;
       border:1px solid rgba(255,255,255,.10);
@@ -432,30 +524,12 @@
       gap:6px;
       min-width: 260px;
     }
-    .cta-band .left .h{
-      font-weight:900;
-      letter-spacing:.02em;
-    }
-    .cta-band .left .p{
-      font-size:12px;
-      opacity:.68;
-      line-height:1.6;
-      max-width: 62ch;
-    }
-    .cta-band .right{
-      display:flex;
-      gap:10px;
-      flex-wrap:wrap;
-      justify-content:flex-end;
-    }
+    .cta-band .left .h{font-weight:900; letter-spacing:.02em;}
+    .cta-band .left .p{font-size:12px; opacity:.68; line-height:1.6; max-width: 70ch;}
+    .cta-band .right{display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end;}
 
-    /* Footer */
-    footer{
-      padding: 24px 0 34px;
-      opacity:.75;
-      font-size:12px;
-      line-height:1.7;
-    }
+    /* ===== Footer ===== */
+    footer{padding: 24px 0 34px; opacity:.78; font-size:12px; line-height:1.7;}
     .foot-grid{
       display:grid;
       grid-template-columns: 1.2fr .8fr;
@@ -470,17 +544,20 @@
       border-radius: 18px;
       padding: 12px 12px;
     }
-    code.inline{
-      padding:2px 6px;
-      border-radius: 10px;
-      border:1px solid rgba(255,255,255,.10);
-      background: rgba(0,0,0,.22);
-    }
   </style>
+
+  <!-- Three.js：用于 index 的“制作 3D 预览”，让作业展示里确实有 3D -->
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
+      }
+    }
+  </script>
 </head>
 
 <body>
-  <!-- 顶部导航：入口不再“浮窗”，固定在这里 -->
+  <!-- 顶部导航：进入 3D 在这里（主入口） -->
   <div class="nav">
     <div class="container">
       <div class="nav-inner">
@@ -502,7 +579,7 @@
     <!-- Hero -->
     <div class="hero" id="top">
       <div class="hero-grid">
-        <div class="hero-card">
+        <div class="card pad">
           <div class="pill">不诊断 · 不解释 · 只安放</div>
           <h1>情绪容器 · Emotion Vessel</h1>
           <p class="sub">
@@ -514,36 +591,40 @@
             但在这里，AI 不试图解释你。它只协助你，为一段情绪选择一个容器——一个透明的、狭小的、或被时间包裹的空间。
           </div>
 
-          <div class="hero-actions">
+          <div class="actions">
             <a class="btn primary" href="viewer.html">进入 3D 情绪容器</a>
-            <a class="btn ghost" href="#guide">从向导开始</a>
+            <a class="btn ghost" href="#make">看制作与 3D 预览</a>
             <a class="btn" href="#choose">直接选容器</a>
           </div>
+
           <div class="mini">
             提示：展厅页面支持直达某个作品：<code class="inline">viewer.html?work=01_figure</code>
           </div>
         </div>
 
-        <div class="right-card">
-          <div class="pill">交作业版 · 结构完整优先</div>
-          <div class="right-title">这个项目在做什么？</div>
-          <ul class="checklist">
-            <li><b>把情绪当作“可被安放的经验”</b>，而不是需要被修复的问题。</li>
-            <li><b>用三种容器外观</b>，表达三种不同的安放方式（透明 / 短暂 / 收纳）。</li>
-            <li><b>将作品导入 3D 展厅</b>，形成可浏览的“情绪陈列”。</li>
-          </ul>
-          <div class="right-foot">
-            说明：制作流程中涉及的工具/平台仅作为方法，不作为品牌展示；页面以叙事与空间隐喻为主。
+        <div class="card pad" style="background: radial-gradient(900px 400px at 30% 12%, rgba(255,255,255,.08), transparent 60%), rgba(255,255,255,.03);">
+          <div class="pill">交作业优先：结构完整 + 证据链</div>
+          <div style="margin:12px 0 8px; font-size:16px; font-weight:900;">这个项目在做什么？</div>
+          <div style="display:grid; gap:10px; font-size:13px; opacity:.86; line-height:1.75;">
+            <div style="border:1px solid rgba(255,255,255,.10); background: rgba(0,0,0,.16); border-radius: 16px; padding: 10px 12px;">
+              <b>把情绪当作“可被安放的经验”</b>，而不是需要被修复的问题。
+            </div>
+            <div style="border:1px solid rgba(255,255,255,.10); background: rgba(0,0,0,.16); border-radius: 16px; padding: 10px 12px;">
+              <b>用三种写实容器外观</b>，表达三种安放方式（玻璃 / 火柴盒 / 抽屉）。
+            </div>
+            <div style="border:1px solid rgba(255,255,255,.10); background: rgba(0,0,0,.16); border-radius: 16px; padding: 10px 12px;">
+              <b>将作品导入 3D 展厅</b>，形成可浏览的“情绪陈列”。
+            </div>
           </div>
 
           <div class="cta-band">
             <div class="left">
               <div class="h">现在就进入展厅</div>
-              <div class="p">展厅承载作品浏览（加载可能较慢，取决于网络与模型大小）。</div>
+              <div class="p">入口不再漂浮在页面底部；统一放在导航与页面 CTA，结构更清晰。</div>
             </div>
             <div class="right">
               <a class="btn primary" href="viewer.html">进入 3D 展厅</a>
-              <a class="btn" href="#guide">查看制作向导</a>
+              <a class="btn" href="#guide">查看向导</a>
             </div>
           </div>
         </div>
@@ -554,7 +635,7 @@
     <section id="guide">
       <div class="section-head">
         <h2>入口 · 向导</h2>
-        <p>你可以把它理解为“作品生成与整理流程”的说明页。</p>
+        <p>作业呈现：把“我怎么做出来的”写清楚，形成可复现流程。</p>
       </div>
 
       <div class="steps">
@@ -562,7 +643,7 @@
           <div class="k">STEP 1</div>
           <div class="t">准备一张情绪图像</div>
           <p class="d">
-            选择一张你愿意交给它的图像：可以是照片、插画、符号或抽象纹理。<br/>
+            选择一张你愿意交给它的图像：照片、插画、符号或抽象纹理皆可。<br/>
             它不需要“好看”，只需要“真实地属于那段情绪”。
           </p>
           <div class="meta">
@@ -574,29 +655,29 @@
 
         <div class="step">
           <div class="k">STEP 2</div>
-          <div class="t">生成 3D 高斯场景</div>
+          <div class="t">生成 3D 高斯场景（.ply）</div>
           <p class="d">
-            使用任意可用的生成工具，将单图转为 3D Gaussian Splats（导出为 .ply）。<br/>
-            这里强调的是“把经验变成可进入的空间”，而非追求写实还原。
+            使用任意可用的生成工具，将单图转为 3D Gaussian Splats（导出 .ply）。<br/>
+            目标是“把经验空间化”，而非写实还原。
           </p>
           <div class="meta">
             <span class="tag">输出：.ply</span>
-            <span class="tag">空间化表达</span>
-            <span class="tag">可重复调整</span>
+            <span class="tag">空间隐喻</span>
+            <span class="tag">可迭代</span>
           </div>
         </div>
 
         <div class="step">
           <div class="k">STEP 3</div>
-          <div class="t">精修与裁剪</div>
+          <div class="t">精修裁剪（编辑器）</div>
           <p class="d">
-            你可以用一个 3D Gaussian Splats 编辑器做裁剪、对齐、去噪与构图微调。<br/>
-            建议把“容器气质”放在第一位：让空间看起来像一种安放方式。
+            用 3D Splats 编辑器做裁剪、对齐、去噪与构图微调。<br/>
+            让空间更像“容器”而不是“素材堆”。
           </p>
           <div class="meta">
             <span class="tag">裁剪 / 去噪</span>
             <span class="tag">构图修正</span>
-            <span class="tag">导出仍为 .ply</span>
+            <span class="tag">仍导出 .ply</span>
           </div>
         </div>
       </div>
@@ -605,42 +686,49 @@
     <!-- Make -->
     <section id="make">
       <div class="section-head">
-        <h2>制作 · 作品包与展厅</h2>
-        <p>让“制作过程”在页面里更像作品的一部分，而不是一句带过。</p>
+        <h2>制作 · 3D 证据与工具</h2>
+        <p>你说“我做了 3D”，页面就要给出可观看的 3D（哪怕是预览示意）。</p>
       </div>
 
-      <div class="step" style="padding:16px 16px 16px;">
-        <div class="t" style="margin-top:0;">为什么“导出作品包”看起来像一个 JS 文件？</div>
-        <p class="d">
-          因为展厅采用的是浏览器端渲染：页面需要一个脚本（JS）去加载 3D 库、读取 .ply 文件并渲染画面。<br/>
-          <b>作品本体是 .ply</b>，而 <b>JS 负责把作品“呈现出来”</b>（就像播放器与视频文件的关系）。
-        </p>
-        <p class="d" style="margin-top:10px;">
-          你提交作业时可以这样表述：<br/>
-          「作品由 3D Gaussian Splats（.ply）构成，网页端脚本负责加载与交互，形成可进入的展厅体验。」
-        </p>
-      </div>
+      <div class="make-grid">
+        <div class="make-box">
+          <h3>制作说明（写在页面里，不只是 README）</h3>
+          <p>
+            作品本体以 3D Gaussian Splats（<b>.ply</b>）保存。网页端通过脚本加载 3D 库并渲染，形成可进入的展厅体验。<br/>
+            因此“导出作品包像一个 JS 文件”是正常的：<b>JS 是播放器</b>，<b>.ply 是作品</b>。
+          </p>
+          <div class="row">
+            <!-- 你可以把下面链接替换为你想提交的“Supersplat / 编辑器”链接 -->
+            <a class="linkbtn" href="https://superspl.at/" target="_blank" rel="noreferrer">打开 Splats 编辑器参考（Supersplat）</a>
+            <a class="linkbtn" href="viewer.html" target="_self">打开 3D 展厅（viewer.html）</a>
+          </div>
+          <div class="mini" style="margin-top:10px;">
+            备注：如果作业要求避免平台名，你可以把按钮文字改成“打开 3D Splats 编辑器参考”，链接保留。
+          </div>
+        </div>
 
-      <div class="step" style="margin-top:14px;">
-        <div class="t" style="margin-top:0;">Supersplat（或同类编辑器）链接怎么体现？</div>
-        <p class="d">
-          如果你需要在页面里体现“我确实用过编辑器”，最稳妥的方法不是写品牌名，而是写成：
-          <b>“使用 3D Splats 编辑器进行裁剪与精修”</b>，并附上一个“工具参考链接”。
-        </p>
-        <div class="meta">
-          <span class="tag">建议：工具参考链接写在 README</span>
-          <span class="tag">页面避免品牌堆叠</span>
+        <div class="viewer-slot">
+          <div class="viewer-top">
+            <div class="badge">3D 预览（index 内置）</div>
+            <select class="select" id="previewSelect">
+              <option value="glass">玻璃鱼缸</option>
+              <option value="matchbox" selected>火柴盒</option>
+              <option value="drawer">木质抽屉</option>
+            </select>
+          </div>
+          <canvas id="preview3d"></canvas>
+          <div class="viewer-help">可拖拽旋转 · 滚轮缩放（这里是作业展示用 3D 预览，不依赖你的 splat viewer）</div>
         </div>
       </div>
 
       <div class="cta-band" style="margin-top:14px;">
         <div class="left">
-          <div class="h">作品展厅入口（正式位置）</div>
-          <div class="p">不再放在页面底部像浮窗；入口统一放在导航与此处 CTA，逻辑更清晰。</div>
+          <div class="h">进入 3D 情绪容器（正式入口）</div>
+          <div class="p">入口已从“页面底部浮窗”移动到：顶部导航 + Hero 主按钮 + 此处 CTA。</div>
         </div>
         <div class="right">
-          <a class="btn primary" href="viewer.html">进入 3D 情绪容器</a>
-          <a class="btn" href="#choose">先选择容器</a>
+          <a class="btn primary" href="viewer.html">进入 3D 展厅</a>
+          <a class="btn" href="#choose">继续选择容器</a>
         </div>
       </div>
     </section>
@@ -648,52 +736,60 @@
     <!-- Choose -->
     <section id="choose">
       <div class="section-head">
-        <h2>选择情绪容器</h2>
-        <p>三个容器不对应具体作品；它们只在外观与叙事气质上不同。</p>
+        <h2>选择情绪容器（写实风格）</h2>
+        <p>三个容器不对应某个 work；它们只是三种不同“安放方式”的视觉隐喻。</p>
       </div>
 
-      <p style="margin:0; opacity:.78; line-height:1.85; max-width: 78ch;">
-        容器不是风格选择，而是一种安放方式。  
-        你不需要解释你的情绪，只需要决定它更像哪一种“被放置”的形态。
+      <p style="margin:0; opacity:.78; line-height:1.85; max-width: 82ch;">
+        容器不是风格选择，而是一种安放方式。你不需要解释情绪本身，只需要决定它更像哪一种“被放置”的形态。
       </p>
 
       <div class="container-grid">
-        <div class="container-card glass" data-choice="glass">
-          <div class="container-title">玻璃鱼缸</div>
-          <div class="container-en">Glass Tank</div>
-          <p class="container-desc">
-            透明，却并非敞开。<br/>
-            情绪被看见、被承认，但仍被温和地隔离在外。
-          </p>
+        <div class="vessel glass" data-choice="glass">
+          <div class="v-h">玻璃鱼缸</div>
+          <div class="v-en">Glass Tank</div>
+          <p class="v-d">透明、可被看见，但仍被温和隔离。像一层薄薄的玻璃，把情绪留在安全的边界内。</p>
+          <div class="v-m">
+            <span class="v-chip">高光折射感</span>
+            <span class="v-chip">冷色玻璃</span>
+            <span class="v-chip">克制可见</span>
+          </div>
+          <div class="vessel-icon" aria-hidden="true"></div>
         </div>
 
-        <div class="container-card matchbox" data-choice="matchbox">
-          <div class="container-title">火柴盒</div>
-          <div class="container-en">Matchbox</div>
-          <p class="container-desc">
-            很小，很近。<br/>
-            只容纳一个瞬间的感受，不延展，也不回看。
-          </p>
+        <div class="vessel matchbox" data-choice="matchbox">
+          <div class="v-h">火柴盒</div>
+          <div class="v-en">Matchbox</div>
+          <p class="v-d">小、近、短促。只装得下一个瞬间的情绪：不扩大，也不反复咀嚼。</p>
+          <div class="v-m">
+            <span class="v-chip">纸纹与焦边</span>
+            <span class="v-chip">暖色温</span>
+            <span class="v-chip">瞬间收束</span>
+          </div>
+          <div class="vessel-icon" aria-hidden="true"></div>
         </div>
 
-        <div class="container-card drawer" data-choice="drawer">
-          <div class="container-title">木质抽屉</div>
-          <div class="container-en">Wooden Drawer</div>
-          <p class="container-desc">
-            被收纳、被叠放。<br/>
-            情绪没有被处理，只是暂时安置，等待以后再打开。
-          </p>
+        <div class="vessel drawer" data-choice="drawer">
+          <div class="v-h">木质抽屉</div>
+          <div class="v-en">Wooden Drawer</div>
+          <p class="v-d">收纳、分层、暂存。不是处理，而是先放好：等你准备好了再打开。</p>
+          <div class="v-m">
+            <span class="v-chip">木纹质感</span>
+            <span class="v-chip">金属拉手</span>
+            <span class="v-chip">层叠收纳</span>
+          </div>
+          <div class="vessel-icon" aria-hidden="true"></div>
         </div>
       </div>
 
       <div class="choice-note" id="choiceNote">
         当前选择：<b>火柴盒 · Matchbox</b><br/>
-        很小，很近。只容纳一个瞬间的感受，不延展，也不回看。
+        小、近、短促。只装得下一个瞬间的情绪：不扩大，也不反复咀嚼。
       </div>
 
-      <div class="choice-actions">
+      <div class="actions" style="margin-top:14px;">
         <a class="btn primary" href="viewer.html">进入安放空间（3D 展厅）</a>
-        <a class="btn" href="#guide">回到单图转高斯向导</a>
+        <a class="btn" href="#make">回到制作与 3D 预览</a>
       </div>
     </section>
 
@@ -701,7 +797,7 @@
       <div class="foot-grid">
         <div class="foot-box">
           <b>项目说明</b><br/>
-          本项目为实验性数字情绪装置：它不提供诊断，也不试图给出答案。<br/>
+          本项目为实验性数字情绪装置：不提供诊断，也不试图给出答案。<br/>
           它将情绪视作可被安放的经验，并以空间隐喻替代解释性语言。
         </div>
         <div class="foot-box">
@@ -712,36 +808,282 @@
         </div>
       </div>
       <div style="margin-top:12px; opacity:.55;">
-        © Emotion Vessel · For coursework presentation.（页面结构完成度优先，3D 细节可后续完善）
+        © Emotion Vessel · For coursework presentation.
       </div>
     </footer>
   </main>
 
   <script>
-    // 仅用于：点击三种容器后，更新下方的“当前选择”说明（不绑定作品、不跳转）
+    // 容器点击：更新“当前选择”文案（不绑定作品）
     const note = document.getElementById('choiceNote');
     const copy = {
       glass: {
         t: '玻璃鱼缸 · Glass Tank',
-        d: '透明，却并非敞开。情绪被看见、被承认，但仍被温和地隔离在外。'
+        d: '透明、可被看见，但仍被温和隔离。像一层薄薄的玻璃，把情绪留在安全的边界内。'
       },
       matchbox: {
         t: '火柴盒 · Matchbox',
-        d: '很小，很近。只容纳一个瞬间的感受，不延展，也不回看。'
+        d: '小、近、短促。只装得下一个瞬间的情绪：不扩大，也不反复咀嚼。'
       },
       drawer: {
         t: '木质抽屉 · Wooden Drawer',
-        d: '被收纳、被叠放。情绪没有被处理，只是暂时安置，等待以后再打开。'
+        d: '收纳、分层、暂存。不是处理，而是先放好：等你准备好了再打开。'
       }
     };
-
-    document.querySelectorAll('.container-card').forEach(card => {
+    document.querySelectorAll('.vessel').forEach(card => {
       card.addEventListener('click', () => {
         const key = card.getAttribute('data-choice');
         const v = copy[key] || copy.matchbox;
         note.innerHTML = `当前选择：<b>${v.t}</b><br/>${v.d}`;
+        const sel = document.getElementById('previewSelect');
+        if (sel) sel.value = key;
+        window.dispatchEvent(new CustomEvent('ev:setPreview', { detail: { key } }));
       });
     });
+  </script>
+
+  <script type="module">
+    import * as THREE from "three";
+
+    const canvas = document.getElementById("preview3d");
+    const select = document.getElementById("previewSelect");
+
+    // renderer
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+    // scene/camera
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
+    camera.position.set(0.8, 0.55, 1.55);
+
+    // lights
+    const key = new THREE.DirectionalLight(0xffffff, 1.1);
+    key.position.set(2.2, 2.2, 1.6);
+    scene.add(key);
+
+    const fill = new THREE.DirectionalLight(0xffffff, 0.55);
+    fill.position.set(-2.0, 1.2, -1.2);
+    scene.add(fill);
+
+    const amb = new THREE.AmbientLight(0xffffff, 0.25);
+    scene.add(amb);
+
+    // ground
+    const groundGeo = new THREE.CircleGeometry(1.2, 64);
+    const groundMat = new THREE.MeshStandardMaterial({
+      color: 0x0a0b10,
+      roughness: 0.95,
+      metalness: 0.0
+    });
+    const ground = new THREE.Mesh(groundGeo, groundMat);
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.y = -0.45;
+    scene.add(ground);
+
+    // group
+    const group = new THREE.Group();
+    scene.add(group);
+
+    // materials
+    const glassMat = new THREE.MeshPhysicalMaterial({
+      color: 0xbfe7ff,
+      roughness: 0.12,
+      metalness: 0.0,
+      transmission: 0.92,
+      thickness: 0.35,
+      ior: 1.45,
+      transparent: true,
+      opacity: 1.0,
+      specularIntensity: 0.9,
+      clearcoat: 0.5,
+      clearcoatRoughness: 0.12
+    });
+
+    const paperMat = new THREE.MeshStandardMaterial({
+      color: 0xe2b48b,
+      roughness: 0.85,
+      metalness: 0.02
+    });
+
+    const woodMat = new THREE.MeshStandardMaterial({
+      color: 0x8c6b4a,
+      roughness: 0.78,
+      metalness: 0.05
+    });
+
+    const metalMat = new THREE.MeshStandardMaterial({
+      color: 0xeaeaea,
+      roughness: 0.22,
+      metalness: 0.95
+    });
+
+    let obj = null;
+
+    function clearGroup(){
+      while(group.children.length){
+        const c = group.children.pop();
+        c.geometry?.dispose?.();
+        if (Array.isArray(c.material)) c.material.forEach(m => m.dispose?.());
+        else c.material?.dispose?.();
+      }
+      obj = null;
+    }
+
+    // simple “realistic-ish” models
+    function buildGlassTank(){
+      const g = new THREE.Group();
+
+      // tank body
+      const bodyGeo = new THREE.CylinderGeometry(0.38, 0.38, 0.72, 64, 1, true);
+      const body = new THREE.Mesh(bodyGeo, glassMat);
+      body.position.y = 0.02;
+      g.add(body);
+
+      // base ring
+      const baseGeo = new THREE.TorusGeometry(0.38, 0.03, 20, 80);
+      const base = new THREE.Mesh(baseGeo, metalMat);
+      base.rotation.x = Math.PI/2;
+      base.position.y = -0.34;
+      g.add(base);
+
+      // top ring
+      const top = new THREE.Mesh(baseGeo, metalMat);
+      top.rotation.x = Math.PI/2;
+      top.position.y = 0.38;
+      g.add(top);
+
+      // lid
+      const lidGeo = new THREE.CylinderGeometry(0.36, 0.36, 0.06, 64);
+      const lid = new THREE.Mesh(lidGeo, metalMat);
+      lid.position.y = 0.44;
+      g.add(lid);
+
+      return g;
+    }
+
+    function buildMatchbox(){
+      const g = new THREE.Group();
+
+      // outer sleeve
+      const sleeveGeo = new THREE.BoxGeometry(0.86, 0.42, 0.48);
+      const sleeve = new THREE.Mesh(sleeveGeo, paperMat);
+      sleeve.position.y = 0.05;
+      g.add(sleeve);
+
+      // inner tray (slightly offset)
+      const trayGeo = new THREE.BoxGeometry(0.74, 0.30, 0.40);
+      const tray = new THREE.Mesh(trayGeo, new THREE.MeshStandardMaterial({
+        color: 0xb8794f, roughness: 0.92, metalness: 0.0
+      }));
+      tray.position.set(0.10, 0.02, 0.00);
+      g.add(tray);
+
+      // “strike strip”
+      const stripGeo = new THREE.BoxGeometry(0.88, 0.14, 0.02);
+      const strip = new THREE.Mesh(stripGeo, new THREE.MeshStandardMaterial({
+        color: 0x5a2d15, roughness: 0.95, metalness: 0.0
+      }));
+      strip.position.set(0.0, -0.13, 0.25);
+      g.add(strip);
+
+      return g;
+    }
+
+    function buildDrawer(){
+      const g = new THREE.Group();
+
+      // cabinet
+      const cabGeo = new THREE.BoxGeometry(0.92, 0.62, 0.54);
+      const cab = new THREE.Mesh(cabGeo, woodMat);
+      cab.position.y = 0.02;
+      g.add(cab);
+
+      // drawer box (slightly pulled out)
+      const drawGeo = new THREE.BoxGeometry(0.80, 0.22, 0.46);
+      const draw = new THREE.Mesh(drawGeo, new THREE.MeshStandardMaterial({
+        color: 0x7c5d40, roughness: 0.86, metalness: 0.04
+      }));
+      draw.position.set(0.0, 0.06, 0.14);
+      g.add(draw);
+
+      // handle
+      const handleGeo = new THREE.TorusGeometry(0.12, 0.02, 18, 64);
+      const handle = new THREE.Mesh(handleGeo, metalMat);
+      handle.rotation.x = Math.PI/2;
+      handle.position.set(0.0, 0.06, 0.42);
+      g.add(handle);
+
+      return g;
+    }
+
+    function setPreview(kind){
+      clearGroup();
+      if (kind === "glass") obj = buildGlassTank();
+      else if (kind === "drawer") obj = buildDrawer();
+      else obj = buildMatchbox();
+      group.add(obj);
+      group.rotation.set(0.0, 0.0, 0.0);
+    }
+
+    // resize
+    function resize(){
+      const rect = canvas.getBoundingClientRect();
+      const w = Math.max(1, rect.width);
+      const h = Math.max(1, rect.height);
+      renderer.setSize(w, h, false);
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+    }
+    window.addEventListener("resize", resize);
+
+    // simple orbit drag
+    let isDown = false;
+    let lastX = 0, lastY = 0;
+    canvas.addEventListener("pointerdown", (e) => {
+      isDown = true; lastX = e.clientX; lastY = e.clientY;
+      canvas.setPointerCapture(e.pointerId);
+    });
+    canvas.addEventListener("pointerup", (e) => {
+      isDown = false;
+      canvas.releasePointerCapture(e.pointerId);
+    });
+    canvas.addEventListener("pointermove", (e) => {
+      if (!isDown || !obj) return;
+      const dx = (e.clientX - lastX) / 260;
+      const dy = (e.clientY - lastY) / 260;
+      lastX = e.clientX; lastY = e.clientY;
+      group.rotation.y += dx;
+      group.rotation.x += dy;
+      group.rotation.x = Math.max(-0.9, Math.min(0.9, group.rotation.x));
+    });
+    canvas.addEventListener("wheel", (e) => {
+      e.preventDefault();
+      const delta = Math.sign(e.deltaY) * 0.08;
+      camera.position.z = Math.max(0.9, Math.min(2.6, camera.position.z + delta));
+    }, { passive:false });
+
+    // select
+    select.addEventListener("change", () => setPreview(select.value));
+    window.addEventListener("ev:setPreview", (e) => {
+      const k = e.detail?.key;
+      if (!k) return;
+      setPreview(k);
+    });
+
+    // init
+    setPreview(select.value);
+    resize();
+
+    // render loop
+    function tick(){
+      // subtle auto-rotate when not interacting
+      if (!isDown) group.rotation.y += 0.004;
+      renderer.render(scene, camera);
+      requestAnimationFrame(tick);
+    }
+    tick();
   </script>
 </body>
 </html>
