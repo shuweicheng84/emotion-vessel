@@ -29,6 +29,7 @@
       text-decoration: none;
     }
     .item:hover { transform: translateY(-1px); border-color: rgba(255,255,255,.22); }
+    .item.active { border-color: rgba(255,255,255,.35); background: rgba(255,255,255,.05); }
     .item .t { font-size: 13px; margin: 0 0 4px; }
     .item .s { font-size: 12px; opacity: .65; margin: 0; }
     .topbar {
@@ -53,27 +54,29 @@
     #canvasWrap { position: absolute; inset: 0; }
     .status {
       position: absolute; left: 12px; bottom: 12px;
-      font-size: 12px; opacity: .9;
+      font-size: 12px; opacity: .92;
       background: rgba(0,0,0,.38);
       border: 1px solid rgba(255,255,255,.10);
       padding: 8px 10px; border-radius: 10px;
       max-width: min(820px, calc(100% - 24px));
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      pointer-events: none;
     }
     .bigHint {
       position: absolute; inset: 0;
       display: none;
       align-items: center; justify-content: center;
       padding: 24px;
-      color: rgba(255,255,255,.8);
+      color: rgba(255,255,255,.86);
     }
     .bigHint .card{
-      max-width: 720px;
+      max-width: 760px;
       border: 1px solid rgba(255,255,255,.10);
       background: rgba(255,255,255,.03);
       border-radius: 16px;
       padding: 18px;
       line-height: 1.7;
+      backdrop-filter: blur(6px);
     }
     .bigHint code{
       background: rgba(0,0,0,.25);
@@ -122,13 +125,14 @@
     </main>
   </div>
 
+  <!-- ✅ 关键：不再使用任何 CDN，改为本地 vendor/gs3d -->
   <script type="module">
     import { Viewer } from "./assets/vendor/gs3d/gaussian-splats-3d.module.js";
 
-    // ========= 0) 你只需要确认这三项 =========
+    // ====== 0) 你只需要确认这三项 ======
     const OWNER = "shuweicheng84";
     const REPO  = "emotion-vessel";
-    const TAG   = "v0.1"; // 你的 Release tag
+    const TAG   = "v0.1"; // Release tag
 
     const WORKS = [
       { id: "01_figure",    title: "01 Figure",    file: "01_figure.ply" },
@@ -138,7 +142,7 @@
       { id: "08_figure",    title: "08 Figure",    file: "08_figure.ply" }
     ];
 
-    // ========= 1) DOM =========
+    // ====== 1) DOM ======
     const statusEl = document.getElementById("status");
     const listEl = document.getElementById("list");
     const nowTitleEl = document.getElementById("nowTitle");
@@ -154,36 +158,24 @@
     }
     function hideBigHint() { bigHint.style.display = "none"; }
 
-    // ========= 2) Release 资产直链 =========
+    // ====== 2) Release 资产直链 ======
     function releaseUrl(filename) {
       return `https://github.com/${OWNER}/${REPO}/releases/download/${TAG}/${encodeURIComponent(filename)}`;
     }
 
-    // ========= 3) 左侧列表：先渲染出来（不依赖 CDN） =========
-    function renderList() {
+    // ====== 3) 渲染左侧列表 ======
+    function renderList(activeId) {
       listEl.innerHTML = "";
       WORKS.forEach(w => {
         const a = document.createElement("a");
-        a.className = "item";
+        a.className = "item" + (w.id === activeId ? " active" : "");
         a.href = `?work=${encodeURIComponent(w.id)}`;
         a.innerHTML = `<p class="t">${w.title}</p><p class="s">${w.file}</p>`;
         listEl.appendChild(a);
       });
     }
-    renderList();
 
-    // ========= 4) 多 CDN 兜底加载 3D 库 =========
-    
-      // esm.sh 可能导出结构不同，这里做兼容
-      const Viewer = mod.Viewer || mod.default?.Viewer || mod.default || null;
-      if (!Viewer) throw new Error("已加载模块，但找不到 Viewer 导出（CDN 模块结构不兼容）");
-
-      setStatus(`脚本已加载 ✅（${used.split("/")[2]}）`);
-      return Viewer;
-    }
-
-    // ========= 5) 业务逻辑 =========
-    let ViewerClass = null;
+    // ====== 4) 状态 & 业务 ======
     let viewer = null;
     let currentWork = null;
 
@@ -197,69 +189,55 @@
       return sp.get("work") || WORKS[0].id;
     }
 
+    function makeHost() {
+      const host = document.createElement("div");
+      host.style.position = "absolute";
+      host.style.inset = "0";
+      canvasWrap.appendChild(host);
+      return host;
+    }
+
     async function loadWorkById(id) {
       const w = WORKS.find(x => x.id === id) || WORKS[0];
       currentWork = w;
+
+      renderList(w.id);
       hideBigHint();
 
       const url = releaseUrl(w.file);
       nowTitleEl.textContent = `当前：${w.title}（Release：${TAG}）`;
       setStatus(`准备加载：${w.file}`);
 
-      // 1) 确保 ViewerClass 已就绪
-      if (!ViewerClass) {
-        try {
-          ViewerClass = await loadViewerClass();
-        } catch (err) {
-          console.error(err);
-          setStatus("❌ 3D 渲染库加载失败（CDN/网络问题）。换网络或稍后再试。");
-          showBigHint(`
-            <b>3D 渲染库没有加载成功。</b><br/>
-            这通常是 <b>CDN 被拦 / 网络不稳定</b> 导致的（尤其校园网/部分地区网络）。<br/><br/>
-            你可以试试：<br/>
-            1）换一个网络（手机热点常常能立刻好）<br/>
-            2）稍后重试 / 刷新页面<br/>
-            3）如果你在国内：jsDelivr 可能不稳，本页已自动切到 unpkg/esm.sh 兜底，但依然可能被拦。<br/><br/>
-            <span style="opacity:.8">技术细节：控制台会显示具体哪个 CDN 失败。</span>
-          `);
-          return;
-        }
-      }
-
-      // 2) 初始化 viewer
       clearCanvasWrap();
-      const host = document.createElement("div");
-      host.style.position = "absolute";
-      host.style.inset = "0";
-      canvasWrap.appendChild(host);
+      const host = makeHost();
 
       try {
-        viewer = new ViewerClass({
+        // ✅ 直接使用本地导入的 Viewer
+        viewer = new Viewer({
           rootElement: host,
           sharedMemoryForWorkers: false
         });
 
         setStatus(`加载中：${w.file}`);
-
-        // 3) 加载 splat 场景
         await viewer.addSplatScene(url, { progressiveLoad: true });
         viewer.start();
         setStatus(`已加载：${w.file}（拖拽旋转 / 滚轮缩放）`);
       } catch (err) {
         console.error(err);
-        setStatus(`❌ 加载失败：${w.file}（可能是链接/CORS/文件格式）`);
+        setStatus(`❌ 加载失败：${w.file}（可能是链接/网络/文件格式）`);
         showBigHint(`
-          <b>PLY 加载失败。</b><br/>
-          可能原因：<br/>
-          1）Release 链接不对：<code>${TAG}</code> 或文件名不一致<br/>
-          2）文件过大/网络中断<br/>
-          3）PLY 不是 3DGS splat 格式（但你这里是 Supersplat 导出的，理论上没问题）<br/><br/>
-          <span style="opacity:.8">建议：按 F12 打开控制台，把报错截图给我，我能继续精准定位。</span>
+          <b>加载失败。</b><br/><br/>
+          你可以按这个顺序排查：<br/>
+          1）检查 Release：<code>${TAG}</code> 是否存在，并且资产里确实有 <code>${w.file}</code><br/>
+          2）尝试直接打开这个文件链接，看是否能下载：<br/>
+          <code style="word-break:break-all; display:inline-block; margin-top:6px;">${url}</code><br/>
+          3）打开浏览器控制台（F12 → Console），把报错截图给我，我能继续定位。<br/><br/>
+          <span style="opacity:.8">提示：现在已不再依赖 CDN；如果仍失败，通常是 Release 文件链接/网络/PLY 本身的问题。</span>
         `);
       }
-    } // ✅ 这里是你原代码缺失的关键右花括号
+    }
 
-    // ========= 6) 交互 =========
+    // ====== 5) 交互 ======
     // 初次加载
     await loadWorkById(getWorkFromQuery());
 
