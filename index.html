@@ -4,16 +4,6 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Emotion Vessel · 3D 展厅</title>
-
-  <!-- ✅ 关键：让浏览器能解析库内部的 `import "three"`（裸模块名） -->
-  <script type="importmap">
-  {
-    "imports": {
-      "three": "./assets/vendor/three/three.module.js"
-    }
-  }
-  </script>
-
   <style>
     html, body { margin: 0; height: 100%; background: #0b0c10; color: #e6e6e6; font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", Arial, sans-serif; }
     .wrap { display: grid; grid-template-columns: 320px 1fr; height: 100%; }
@@ -39,8 +29,10 @@
       text-decoration: none;
     }
     .item:hover { transform: translateY(-1px); border-color: rgba(255,255,255,.22); }
+    .item.active { border-color: rgba(255,255,255,.38); background: rgba(255,255,255,.06); }
     .item .t { font-size: 13px; margin: 0 0 4px; }
     .item .s { font-size: 12px; opacity: .65; margin: 0; }
+
     .topbar {
       display: flex; gap: 10px; align-items: center; justify-content: space-between;
       padding: 10px 12px;
@@ -59,25 +51,24 @@
       cursor: pointer;
     }
     .btn:hover { border-color: rgba(255,255,255,.28); }
+
     #viewerHost { position: relative; height: calc(100% - 48px); }
     #canvasWrap { position: absolute; inset: 0; }
-
     .status {
       position: absolute; left: 12px; bottom: 12px;
-      font-size: 12px; opacity: .9;
+      font-size: 12px; opacity: .92;
       background: rgba(0,0,0,.38);
       border: 1px solid rgba(255,255,255,.10);
       padding: 8px 10px; border-radius: 10px;
-      max-width: min(820px, calc(100% - 24px));
+      max-width: min(900px, calc(100% - 24px));
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
-
     .bigHint {
       position: absolute; inset: 0;
       display: none;
       align-items: center; justify-content: center;
       padding: 24px;
-      color: rgba(255,255,255,.82);
+      color: rgba(255,255,255,.85);
     }
     .bigHint .card{
       max-width: 760px;
@@ -85,7 +76,7 @@
       background: rgba(255,255,255,.03);
       border-radius: 16px;
       padding: 18px;
-      line-height: 1.7;
+      line-height: 1.75;
     }
     .bigHint code{
       background: rgba(0,0,0,.25);
@@ -95,7 +86,6 @@
     }
   </style>
 </head>
-
 <body>
   <div class="wrap">
     <aside class="side">
@@ -103,7 +93,7 @@
       <h1 class="h1">3D 情绪容器 · 展厅</h1>
       <div class="hint">
         点击左侧作品加载 3D 高斯场景。<br/>
-        说明：这些 .ply 文件来自 Sharp 单图生成的 3D Gaussian Splats，并经过 Supersplat 精修裁剪。
+        说明：这些 .ply 文件来自单图生成的 3D Gaussian Splats，并经过 Supersplat 精修裁剪。
       </div>
 
       <div class="list" id="list"></div>
@@ -136,7 +126,19 @@
   </div>
 
   <script type="module">
-    // ===================== 0) 作品清单（✅改为仓库内相对路径） =====================
+    /**
+     * ✅ 本版本：完全离线/同源（不走 CDN）
+     * 依赖文件：
+     * 1) 3D 库：assets/vendor/gs3d/gaussian-splats-3d.module.js
+     * 2) PLY： assets/ply/clean/*.ply  （你仓库里已经有）
+     */
+
+    // ====== 0) 防呆：如果你打开的是 github.com 的代码页，会因为路径/资源策略导致各种奇怪问题
+    if (location.hostname === "github.com") {
+      alert("请用 GitHub Pages 网址打开（shuweicheng84.github.io/...），不要在 github.com 的代码页直接预览。");
+    }
+
+    // ====== 1) 作品清单（改这里的 file 路径即可）
     const WORKS = [
       { id: "01_figure",    title: "01 Figure",    file: "assets/ply/clean/01_figure.ply" },
       { id: "02_sculpture", title: "02 Sculpture", file: "assets/ply/clean/02_sculpture.ply" },
@@ -145,7 +147,7 @@
       { id: "08_figure",    title: "08 Figure",    file: "assets/ply/clean/08_figure.ply" }
     ];
 
-    // ===================== 1) DOM =====================
+    // ====== 2) DOM
     const statusEl = document.getElementById("status");
     const listEl = document.getElementById("list");
     const nowTitleEl = document.getElementById("nowTitle");
@@ -154,19 +156,28 @@
     const bigHint = document.getElementById("bigHint");
     const bigHintText = document.getElementById("bigHintText");
 
-    function setStatus(t) { statusEl.textContent = t; }
-    function showBigHint(html) {
-      bigHintText.innerHTML = html;
-      bigHint.style.display = "flex";
-    }
-    function hideBigHint() { bigHint.style.display = "none"; }
+    const setStatus = (t) => (statusEl.textContent = t);
+    const showBigHint = (html) => { bigHintText.innerHTML = html; bigHint.style.display = "flex"; };
+    const hideBigHint = () => (bigHint.style.display = "none");
 
-    // ===================== 2) 左侧列表 =====================
+    function getWorkFromQuery() {
+      const sp = new URLSearchParams(location.search);
+      return sp.get("work") || WORKS[0].id;
+    }
+
+    function markActive(id) {
+      [...listEl.querySelectorAll("a.item")].forEach(a => {
+        a.classList.toggle("active", a.dataset.id === id);
+      });
+    }
+
+    // ====== 3) 渲染列表
     function renderList() {
       listEl.innerHTML = "";
       WORKS.forEach(w => {
         const a = document.createElement("a");
         a.className = "item";
+        a.dataset.id = w.id;
         a.href = `?work=${encodeURIComponent(w.id)}`;
         a.innerHTML = `<p class="t">${w.title}</p><p class="s">${w.file}</p>`;
         listEl.appendChild(a);
@@ -174,64 +185,46 @@
     }
     renderList();
 
-    // ===================== 3) 导入本地 3D 渲染库（✅不走 CDN） =====================
-    async function loadViewerClass() {
-      try {
-        setStatus("加载 3D 渲染库（本地）…");
-        const mod = await import("./assets/vendor/gs3d/gaussian-splats-3d.module.js");
-
-        const Viewer = mod.Viewer || mod.default?.Viewer || mod.default;
-        if (!Viewer) throw new Error("已加载 gs3d 模块，但找不到 Viewer 导出");
-
-        setStatus("脚本已加载 ✅（本地 vendor）");
-        return Viewer;
-      } catch (err) {
-        console.error(err);
-        setStatus("❌ 3D 渲染库加载失败（本地文件缺失/路径不对/three 映射失败）");
-
-        showBigHint(`
-          <b>3D 渲染库没有加载成功。</b><br/>
-          重点请检查这两项是否都存在：<br/>
-          1）<code>assets/vendor/gs3d/gaussian-splats-3d.module.js</code><br/>
-          2）<code>assets/vendor/three/three.module.js</code><br/><br/>
-          以及页面最上方的 <b>importmap</b> 是否仍在：<br/>
-          <code>"three": "./assets/vendor/three/three.module.js"</code><br/><br/>
-          <span style="opacity:.8">你现在控制台如果还报 “Failed to resolve module specifier 'three'”，说明 importmap 没生效或路径不对。</span>
-        `);
-        throw err;
-      }
+    // ====== 4) 导入本地 3D 库（不走 CDN）
+    let ViewerClass = null;
+    try {
+      setStatus("加载本地 3D 渲染库中…");
+      const mod = await import("./assets/vendor/gs3d/gaussian-splats-3d.module.js");
+      ViewerClass = mod.Viewer || mod.default?.Viewer || mod.default;
+      if (!ViewerClass) throw new Error("找不到 Viewer 导出");
+      setStatus("本地 3D 渲染库已就绪 ✅");
+    } catch (err) {
+      console.error(err);
+      setStatus("❌ 本地 3D 渲染库加载失败");
+      showBigHint(`
+        <b>本地 3D 渲染库没加载成功。</b><br/>
+        请检查：<br/>
+        1）仓库里是否存在：<code>assets/vendor/gs3d/gaussian-splats-3d.module.js</code><br/>
+        2）你是否用 GitHub Pages 地址打开（不是 github.com 代码页）<br/><br/>
+        <span style="opacity:.85">打开控制台（F12）看报错，把报错截图给我也行。</span>
+      `);
+      throw err;
     }
 
-    // ===================== 4) 业务逻辑 =====================
-    let ViewerClass = null;
+    // ====== 5) 加载/切换作品
     let viewer = null;
     let currentWork = null;
 
     function clearCanvasWrap() {
-      // 简单粗暴重建（比尝试 dispose 更稳）
       canvasWrap.innerHTML = "";
       viewer = null;
-    }
-
-    function getWorkFromQuery() {
-      const sp = new URLSearchParams(location.search);
-      return sp.get("work") || WORKS[0].id;
     }
 
     async function loadWorkById(id) {
       const w = WORKS.find(x => x.id === id) || WORKS[0];
       currentWork = w;
       hideBigHint();
+      markActive(w.id);
 
       nowTitleEl.textContent = `当前：${w.title}`;
       setStatus(`准备加载：${w.file}`);
 
-      // 1) 确保 ViewerClass 已就绪
-      if (!ViewerClass) {
-        ViewerClass = await loadViewerClass(); // 失败会在里面提示并 throw
-      }
-
-      // 2) 初始化 viewer
+      // 创建 host
       clearCanvasWrap();
       const host = document.createElement("div");
       host.style.position = "absolute";
@@ -246,31 +239,34 @@
 
         setStatus(`加载中：${w.file}`);
 
-        // 3) 加载 splat 场景
-        await viewer.addSplatScene(w.file, { progressiveLoad: true });
+        // ✅ 同源相对路径最稳：直接加载仓库里的 ply
+        await viewer.addSplatScene("./" + w.file, { progressiveLoad: true });
+
         viewer.start();
         setStatus(`已加载：${w.file}（拖拽旋转 / 滚轮缩放）`);
       } catch (err) {
         console.error(err);
-        setStatus(`❌ 加载失败：${w.file}（可能是文件路径/格式/资源被 GitHub Pages 拦截）`);
+        setStatus(`❌ 加载失败：${w.file}`);
         showBigHint(`
           <b>PLY 加载失败。</b><br/>
-          请检查：<br/>
-          1）这个文件在仓库里真实存在：<code>${w.file}</code><br/>
-          2）你打开的是 GitHub Pages 的地址（<b>shuweicheng84.github.io</b>）而不是 github.com 的代码页<br/>
-          3）PLY 确实是 Supersplat 导出的 3DGS splat PLY<br/><br/>
-          <span style="opacity:.8">如果愿意，把 Network 里该 ply 的请求状态码截图给我（200/404/403），我能继续精准定位。</span>
+          重点检查这两项：<br/>
+          1）文件是否真实存在：<code>${w.file}</code><br/>
+          2）文件名大小写是否完全一致（GitHub 对大小写很严格）<br/><br/>
+          <span style="opacity:.85">打开控制台（F12）看报错，把报错截图给我，我能继续精准定位。</span>
         `);
       }
     }
 
-    // ===================== 5) 交互 =====================
+    // ====== 6) 交互
+    // 初次加载
     await loadWorkById(getWorkFromQuery());
 
+    // 前进后退
     window.addEventListener("popstate", async () => {
       await loadWorkById(getWorkFromQuery());
     });
 
+    // 点击列表不刷新整页
     listEl.addEventListener("click", async (e) => {
       const a = e.target.closest("a.item");
       if (!a) return;
@@ -279,6 +275,7 @@
       await loadWorkById(getWorkFromQuery());
     });
 
+    // 复制链接
     copyLinkBtn.addEventListener("click", async () => {
       const url = new URL(location.href);
       url.searchParams.set("work", currentWork?.id || WORKS[0].id);
