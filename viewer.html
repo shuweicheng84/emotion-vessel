@@ -173,37 +173,7 @@
     renderList();
 
     // ========= 4) 多 CDN 兜底加载 3D 库 =========
-    async function importWithFallback(urls) {
-      let lastErr = null;
-      for (const u of urls) {
-        try {
-          setStatus(`加载 3D 渲染库中：${u}`);
-          const mod = await import(u);
-          return { mod, used: u };
-        } catch (e) {
-          lastErr = e;
-          console.warn("[CDN FAIL]", u, e);
-        }
-      }
-      throw lastErr || new Error("CDN import failed");
-    }
-
-    async function loadViewerClass() {
-      // 注意：不同版本文件夹可能是 dist/ 或 build/
-      const version = "0.4.7";
-      const urls = [
-        // jsDelivr（可能不稳）
-        `https://cdn.jsdelivr.net/npm/gaussian-splats-3d@${version}/dist/gaussian-splats-3d.module.js`,
-        `https://cdn.jsdelivr.net/npm/gaussian-splats-3d@${version}/build/gaussian-splats-3d.module.js`,
-        // unpkg
-        `https://unpkg.com/gaussian-splats-3d@${version}/dist/gaussian-splats-3d.module.js`,
-        `https://unpkg.com/gaussian-splats-3d@${version}/build/gaussian-splats-3d.module.js`,
-        // esm.sh（最后兜底）
-        `https://esm.sh/gaussian-splats-3d@${version}`
-      ];
-
-      const { mod, used } = await importWithFallback(urls);
-
+    
       // esm.sh 可能导出结构不同，这里做兼容
       const Viewer = mod.Viewer || mod.default?.Viewer || mod.default || null;
       if (!Viewer) throw new Error("已加载模块，但找不到 Viewer 导出（CDN 模块结构不兼容）");
