@@ -29,9 +29,10 @@
       text-decoration: none;
     }
     .item:hover { transform: translateY(-1px); border-color: rgba(255,255,255,.22); }
-    .item.active { border-color: rgba(255,255,255,.35); background: rgba(255,255,255,.05); }
+    .item.active { border-color: rgba(255,255,255,.38); background: rgba(255,255,255,.06); }
     .item .t { font-size: 13px; margin: 0 0 4px; }
     .item .s { font-size: 12px; opacity: .65; margin: 0; }
+
     .topbar {
       display: flex; gap: 10px; align-items: center; justify-content: space-between;
       padding: 10px 12px;
@@ -50,6 +51,7 @@
       cursor: pointer;
     }
     .btn:hover { border-color: rgba(255,255,255,.28); }
+
     #viewerHost { position: relative; height: calc(100% - 48px); }
     #canvasWrap { position: absolute; inset: 0; }
     .status {
@@ -58,16 +60,15 @@
       background: rgba(0,0,0,.38);
       border: 1px solid rgba(255,255,255,.10);
       padding: 8px 10px; border-radius: 10px;
-      max-width: min(820px, calc(100% - 24px));
+      max-width: min(900px, calc(100% - 24px));
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-      pointer-events: none;
     }
     .bigHint {
       position: absolute; inset: 0;
       display: none;
       align-items: center; justify-content: center;
       padding: 24px;
-      color: rgba(255,255,255,.86);
+      color: rgba(255,255,255,.85);
     }
     .bigHint .card{
       max-width: 760px;
@@ -75,8 +76,7 @@
       background: rgba(255,255,255,.03);
       border-radius: 16px;
       padding: 18px;
-      line-height: 1.7;
-      backdrop-filter: blur(6px);
+      line-height: 1.75;
     }
     .bigHint code{
       background: rgba(0,0,0,.25);
@@ -93,7 +93,7 @@
       <h1 class="h1">3D 情绪容器 · 展厅</h1>
       <div class="hint">
         点击左侧作品加载 3D 高斯场景。<br/>
-        说明：这些 .ply 文件来自 Sharp 单图生成的 3D Gaussian Splats，并经过 Supersplat 精修裁剪。
+        说明：这些 .ply 文件来自单图生成的 3D Gaussian Splats，并经过 Supersplat 精修裁剪。
       </div>
 
       <div class="list" id="list"></div>
@@ -125,24 +125,29 @@
     </main>
   </div>
 
-  <!-- ✅ 关键：不再使用任何 CDN，改为本地 vendor/gs3d -->
   <script type="module">
-    import { Viewer } from "./assets/vendor/gs3d/gaussian-splats-3d.module.js";
+    /**
+     * ✅ 本版本：完全离线/同源（不走 CDN）
+     * 依赖文件：
+     * 1) 3D 库：assets/vendor/gs3d/gaussian-splats-3d.module.js
+     * 2) PLY： assets/ply/clean/*.ply  （你仓库里已经有）
+     */
 
-    // ====== 0) 你只需要确认这三项 ======
-    const OWNER = "shuweicheng84";
-    const REPO  = "emotion-vessel";
-    const TAG   = "v0.1"; // Release tag
+    // ====== 0) 防呆：如果你打开的是 github.com 的代码页，会因为路径/资源策略导致各种奇怪问题
+    if (location.hostname === "github.com") {
+      alert("请用 GitHub Pages 网址打开（shuweicheng84.github.io/...），不要在 github.com 的代码页直接预览。");
+    }
 
+    // ====== 1) 作品清单（改这里的 file 路径即可）
     const WORKS = [
-      { id: "01_figure",    title: "01 Figure",    file: "01_figure.ply" },
-      { id: "02_sculpture", title: "02 Sculpture", file: "02_sculpture.ply" },
-      { id: "03_painting",  title: "03 Painting",  file: "03_painting.ply" },
-      { id: "04_ecnu",      title: "04 ECNU",      file: "04_ecnu.ply" },
-      { id: "08_figure",    title: "08 Figure",    file: "08_figure.ply" }
+      { id: "01_figure",    title: "01 Figure",    file: "assets/ply/clean/01_figure.ply" },
+      { id: "02_sculpture", title: "02 Sculpture", file: "assets/ply/clean/02_sculpture.ply" },
+      { id: "03_painting",  title: "03 Painting",  file: "assets/ply/clean/03_painting.ply" },
+      { id: "04_ecnu",      title: "04 ECNU",      file: "assets/ply/clean/04_ecnu.ply" },
+      { id: "08_figure",    title: "08 Figure",    file: "assets/ply/clean/08_figure.ply" }
     ];
 
-    // ====== 1) DOM ======
+    // ====== 2) DOM
     const statusEl = document.getElementById("status");
     const listEl = document.getElementById("list");
     const nowTitleEl = document.getElementById("nowTitle");
@@ -151,31 +156,57 @@
     const bigHint = document.getElementById("bigHint");
     const bigHintText = document.getElementById("bigHintText");
 
-    function setStatus(t) { statusEl.textContent = t; }
-    function showBigHint(html) {
-      bigHintText.innerHTML = html;
-      bigHint.style.display = "flex";
-    }
-    function hideBigHint() { bigHint.style.display = "none"; }
+    const setStatus = (t) => (statusEl.textContent = t);
+    const showBigHint = (html) => { bigHintText.innerHTML = html; bigHint.style.display = "flex"; };
+    const hideBigHint = () => (bigHint.style.display = "none");
 
-    // ====== 2) Release 资产直链 ======
-    function releaseUrl(filename) {
-      return `https://github.com/${OWNER}/${REPO}/releases/download/${TAG}/${encodeURIComponent(filename)}`;
+    function getWorkFromQuery() {
+      const sp = new URLSearchParams(location.search);
+      return sp.get("work") || WORKS[0].id;
     }
 
-    // ====== 3) 渲染左侧列表 ======
-    function renderList(activeId) {
+    function markActive(id) {
+      [...listEl.querySelectorAll("a.item")].forEach(a => {
+        a.classList.toggle("active", a.dataset.id === id);
+      });
+    }
+
+    // ====== 3) 渲染列表
+    function renderList() {
       listEl.innerHTML = "";
       WORKS.forEach(w => {
         const a = document.createElement("a");
-        a.className = "item" + (w.id === activeId ? " active" : "");
+        a.className = "item";
+        a.dataset.id = w.id;
         a.href = `?work=${encodeURIComponent(w.id)}`;
         a.innerHTML = `<p class="t">${w.title}</p><p class="s">${w.file}</p>`;
         listEl.appendChild(a);
       });
     }
+    renderList();
 
-    // ====== 4) 状态 & 业务 ======
+    // ====== 4) 导入本地 3D 库（不走 CDN）
+    let ViewerClass = null;
+    try {
+      setStatus("加载本地 3D 渲染库中…");
+      const mod = await import("./assets/vendor/gs3d/gaussian-splats-3d.module.js");
+      ViewerClass = mod.Viewer || mod.default?.Viewer || mod.default;
+      if (!ViewerClass) throw new Error("找不到 Viewer 导出");
+      setStatus("本地 3D 渲染库已就绪 ✅");
+    } catch (err) {
+      console.error(err);
+      setStatus("❌ 本地 3D 渲染库加载失败");
+      showBigHint(`
+        <b>本地 3D 渲染库没加载成功。</b><br/>
+        请检查：<br/>
+        1）仓库里是否存在：<code>assets/vendor/gs3d/gaussian-splats-3d.module.js</code><br/>
+        2）你是否用 GitHub Pages 地址打开（不是 github.com 代码页）<br/><br/>
+        <span style="opacity:.85">打开控制台（F12）看报错，把报错截图给我也行。</span>
+      `);
+      throw err;
+    }
+
+    // ====== 5) 加载/切换作品
     let viewer = null;
     let currentWork = null;
 
@@ -184,69 +215,58 @@
       viewer = null;
     }
 
-    function getWorkFromQuery() {
-      const sp = new URLSearchParams(location.search);
-      return sp.get("work") || WORKS[0].id;
-    }
+    async function loadWorkById(id) {
+      const w = WORKS.find(x => x.id === id) || WORKS[0];
+      currentWork = w;
+      hideBigHint();
+      markActive(w.id);
 
-    function makeHost() {
+      nowTitleEl.textContent = `当前：${w.title}`;
+      setStatus(`准备加载：${w.file}`);
+
+      // 创建 host
+      clearCanvasWrap();
       const host = document.createElement("div");
       host.style.position = "absolute";
       host.style.inset = "0";
       canvasWrap.appendChild(host);
-      return host;
-    }
-
-    async function loadWorkById(id) {
-      const w = WORKS.find(x => x.id === id) || WORKS[0];
-      currentWork = w;
-
-      renderList(w.id);
-      hideBigHint();
-
-      const url = releaseUrl(w.file);
-      nowTitleEl.textContent = `当前：${w.title}（Release：${TAG}）`;
-      setStatus(`准备加载：${w.file}`);
-
-      clearCanvasWrap();
-      const host = makeHost();
 
       try {
-        // ✅ 直接使用本地导入的 Viewer
-        viewer = new Viewer({
+        viewer = new ViewerClass({
           rootElement: host,
           sharedMemoryForWorkers: false
         });
 
         setStatus(`加载中：${w.file}`);
-        await viewer.addSplatScene(url, { progressiveLoad: true });
+
+        // ✅ 同源相对路径最稳：直接加载仓库里的 ply
+        await viewer.addSplatScene("./" + w.file, { progressiveLoad: true });
+
         viewer.start();
         setStatus(`已加载：${w.file}（拖拽旋转 / 滚轮缩放）`);
       } catch (err) {
         console.error(err);
-        setStatus(`❌ 加载失败：${w.file}（可能是链接/网络/文件格式）`);
+        setStatus(`❌ 加载失败：${w.file}`);
         showBigHint(`
-          <b>加载失败。</b><br/><br/>
-          你可以按这个顺序排查：<br/>
-          1）检查 Release：<code>${TAG}</code> 是否存在，并且资产里确实有 <code>${w.file}</code><br/>
-          2）尝试直接打开这个文件链接，看是否能下载：<br/>
-          <code style="word-break:break-all; display:inline-block; margin-top:6px;">${url}</code><br/>
-          3）打开浏览器控制台（F12 → Console），把报错截图给我，我能继续定位。<br/><br/>
-          <span style="opacity:.8">提示：现在已不再依赖 CDN；如果仍失败，通常是 Release 文件链接/网络/PLY 本身的问题。</span>
+          <b>PLY 加载失败。</b><br/>
+          重点检查这两项：<br/>
+          1）文件是否真实存在：<code>${w.file}</code><br/>
+          2）文件名大小写是否完全一致（GitHub 对大小写很严格）<br/><br/>
+          <span style="opacity:.85">打开控制台（F12）看报错，把报错截图给我，我能继续精准定位。</span>
         `);
       }
     }
 
-    // ====== 5) 交互 ======
+    // ====== 6) 交互
     // 初次加载
     await loadWorkById(getWorkFromQuery());
 
-    // 浏览器前进后退
+    // 前进后退
     window.addEventListener("popstate", async () => {
       await loadWorkById(getWorkFromQuery());
     });
 
-    // 点击左侧列表不刷新整页
+    // 点击列表不刷新整页
     listEl.addEventListener("click", async (e) => {
       const a = e.target.closest("a.item");
       if (!a) return;
@@ -255,7 +275,7 @@
       await loadWorkById(getWorkFromQuery());
     });
 
-    // 复制当前作品链接
+    // 复制链接
     copyLinkBtn.addEventListener("click", async () => {
       const url = new URL(location.href);
       url.searchParams.set("work", currentWork?.id || WORKS[0].id);
